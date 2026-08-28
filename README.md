@@ -25,11 +25,11 @@ XAI Connect 当前面向服务端 Web 应用，使用 OIDC Authorization Code + 
    - 一个或多个精确的 HTTPS 回调地址；
    - 能覆盖所有回调主机的已验证域名；
    - 可选的 PNG/JPEG Logo。
-3. 保存草稿并提交审核。
-4. 审核通过后，平台异步创建 OIDC Client，应用状态变为 `approved`，页面显示 Client ID。
+3. 保存应用。平台默认免人工审核，应用会自动进入 `provisioning`，后台异步创建 OIDC Client。
+4. Provisioning 成功后应用状态变为 `approved`，页面显示 Client ID。
 5. 应用所有者在完成近期敏感操作确认后查看 Client Secret。Secret 可以明文显示，请立即保存到服务端密钥管理系统。
 
-普通应用创建者必须是活跃、未被禁言且 Trust Level（TL）不低于 1 的 Discourse 用户；`connect-admins` 群组成员在账号活跃、未被禁言且未暂停时可直接创建和提交应用，不受 TL1 限制。每个用户最多有 3 个处于开放状态的应用。
+普通应用创建者必须是活跃、未被禁言且 Trust Level（TL）不低于 1 的 Discourse 用户；`connect-admins` 群组成员在账号活跃、未被禁言且未暂停时可直接创建应用，不受 TL1 限制。每个用户最多有 3 个处于开放状态的应用。
 
 ### 回调地址示例
 
@@ -318,16 +318,16 @@ go run ./examples/go-client revoke <token>
    - `connect-reviewers`：允许成员审核 Connect 应用；
    - `connect-admins`：Connect 管理员标记，供管理级功能使用。
 
-   当前版本的审核权限由 `connect-reviewers` 控制；`connect-admins` 成员可以访问 Portal 的“运营概览”，并可在满足账号状态要求时绕过 TL1 创建和提交应用。两组身份标记都会同步到 Portal，不要求管理员通过 Hydra Admin API 手工创建客户端。
+   新创建的应用默认免人工审核，Portal 会自动排队创建 OIDC Client。`connect-reviewers` 和 `connect-admins` 仍可打开审核队列处理历史或特殊的 `pending_review` 应用；`connect-admins` 成员还可以访问“运营概览”，并在满足账号状态要求时绕过 TL1 创建应用。两组身份标记都会同步到 Portal，不要求管理员通过 Hydra Admin API 手工创建客户端。
 
 插件代码或 `app.yml` 发生变化时才需要重建 Discourse 容器；普通站点设置和群组成员调整通常即时生效。
 
-### 日常审核
+### 历史待审核应用
 
-1. 审核员使用自己的 Discourse 账号打开 <https://connect.xai.run/connect/review>。
+1. 审核员或管理员使用自己的 Discourse 账号打开 <https://connect.xai.run/connect/review>。
 2. 查看待审核应用的名称、用途、回调地址和已验证域名。
 3. 必须填写审核理由，然后选择“批准并上线”“要求修改”或“驳回”。
-4. 批准后 Portal 会异步创建 OIDC Client；应用所有者再从 Portal 获取 Client ID/Secret。
+4. 批准后 Portal 会异步创建 OIDC Client；默认自动上线的应用不需要经过这一步。
 
 普通审核员不能审核自己创建的应用；`connect-admins` 成员可以审核所有应用，包括自己创建的应用。管理员不需要登录 Hydra、手工创建 OAuth Client，也不应直接修改 Portal 数据库。
 

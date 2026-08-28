@@ -149,7 +149,7 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 	outbox := postgres.NewOutboxStore(db)
 	audit := postgres.NewAuditStore(db)
 	appService := apps.NewService(apps.Dependencies{
-		Status: status, Apps: db, Audit: audit, Box: box, Hydra: hydraAdmin,
+		Status: status, Apps: db, Outbox: outbox, Audit: audit, Box: box, Hydra: hydraAdmin,
 	})
 	provisioner := apps.NewProvisioner(apps.ProvisionerDependencies{
 		Apps: db, Outbox: outbox, Audit: audit, Hydra: hydraAdmin, Box: box,

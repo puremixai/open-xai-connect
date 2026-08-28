@@ -29,6 +29,26 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 	}
 }
 
+func TestRendererShowsProvisioningActionForExistingDraft(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", map[string]any{
+		"PageTitle": "应用详情",
+		"Apps":      []domain.Application{{ID: "app_1", Name: "Draft", Status: domain.StatusDraft}},
+		"Layout":    Layout{Active: "apps", CSRFToken: "csrf"},
+	})
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, `action="/connect/apps/app_1/submit"`) || !strings.Contains(body, "开始上线") {
+		t.Fatalf("draft provisioning action missing: %q", body)
+	}
+}
+
 func TestRendererEscapesApplicationContentAndSetsSecurityHeaders(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {

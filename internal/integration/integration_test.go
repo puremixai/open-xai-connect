@@ -73,7 +73,7 @@ func TestReviewedApplicationOIDCFlowAndSuspensionDeny(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	appService := apps.NewService(apps.Dependencies{Status: status, Apps: appsRepo, Audit: audit, Box: box, Hydra: hydraFake})
+	appService := apps.NewService(apps.Dependencies{Status: status, Apps: appsRepo, Outbox: outbox, Audit: audit, Box: box, Hydra: hydraFake, RequireReview: true})
 	app, err := appService.CreateDraft(context.Background(), string(developer.Subject), apps.DraftInput{
 		Name: "Integration App", Description: "OIDC integration", CallbackURLs: []string{"https://client.example/callback"}, VerifiedDomains: []string{"client.example"},
 	})

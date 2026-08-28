@@ -4,7 +4,7 @@
   <div>
     <p class="eyebrow">应用注册</p>
     <h1>{{.Title}}</h1>
-    <p class="lead">提交一个清晰、可验证的接入申请。审核通过后，其他网站就能使用 xai.run 账号登录你的应用。</p>
+    <p class="lead">提交一个清晰、可验证的接入资料。保存后平台会自动创建 OIDC Client，其他网站即可使用 xai.run 账号登录你的应用。</p>
   </div>
   <a class="button button-secondary" href="/connect/apps">返回应用</a>
 </section>
@@ -22,7 +22,7 @@
         <div class="field">
           <label for="description">用途说明</label>
           <textarea id="description" name="description" maxlength="2000" required placeholder="说明你的应用提供什么服务，以及为什么需要 xai.run 登录。">{{.Description}}</textarea>
-          <p class="field-help">审核员会根据用途说明确认权限申请是否合理。</p>
+          <p class="field-help">平台会保留用途说明，方便你和管理员追踪应用用途。</p>
         </div>
         <div class="field">
           <label for="callbacks">回调地址</label>
@@ -40,15 +40,15 @@
           <p class="field-help">可选 PNG/JPEG，建议使用清晰的方形图标，文件不超过 512 KiB。</p>
         </div>
         <div class="form-actions">
-          <button class="button" type="submit">保存草稿</button>
+          <button class="button" type="submit">创建并上线</button>
           <a class="button button-secondary" href="/connect/apps">取消</a>
         </div>
       </div>
     </form>
   </div>
   <aside class="info-stack">
-    <div class="info-block"><h3>审核前检查</h3><ul><li>回调地址必须和真实部署地址完全一致。</li><li>已验证域名要覆盖全部回调主机。</li><li>不要在用途说明中放入密钥或用户隐私。</li></ul></div>
-    <div class="info-block"><h3>上线之后</h3><p>应用批准后会自动创建 OIDC Client。Client Secret 只应保存于服务端密钥管理系统，不要提交到 Git。</p></div>
+    <div class="info-block"><h3>上线前检查</h3><ul><li>回调地址必须和真实部署地址完全一致。</li><li>已验证域名要覆盖全部回调主机。</li><li>不要在用途说明中放入密钥或用户隐私。</li></ul></div>
+    <div class="info-block"><h3>上线之后</h3><p>应用创建后会自动创建 OIDC Client。Client Secret 只应保存于服务端密钥管理系统，不要提交到 Git。</p></div>
   </aside>
 </section>
 

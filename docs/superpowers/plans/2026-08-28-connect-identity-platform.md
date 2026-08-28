@@ -14,7 +14,7 @@
 
 - Discourse remains the account and password system; Connect keeps only a shadow identity mapping, application ownership, sessions, consents, and audit records.
 - Only TL1-or-higher, active, non-silenced users can submit applications. A user may have at most three open applications. Suspended users cannot authenticate; silenced users may authenticate but cannot manage applications.
-- The lifecycle is draft -> pending_review -> provisioning -> approved, with rejected and changes_requested returning to an editable state. No Hydra client or credentials exist before approval; approval immediately provisions the production client.
+- The default lifecycle is draft -> provisioning -> approved. Legacy or explicitly gated applications may use pending_review before provisioning. No Hydra client or credentials exist before provisioning; provisioning creates the production client.
 - Only confidential server-side web clients are supported. Authorization Code with PKCE S256 is required. Callback URLs are exact HTTPS URLs; wildcard, localhost, and IP callbacks are rejected.
 - Claims are limited to stable Connect sub, username, display name, avatar URL, trust level, active, and silenced. Do not expose email, groups, external IDs, admin flags, or Discourse API keys.
 - Client secrets are encrypted at rest, masked by default, re-displayable in plaintext only to the owning developer after recent sensitive-action confirmation, never logged, and resettable by admins without retrieval.
@@ -66,7 +66,7 @@
 
 ## Task 5: Implement self-service application review and provisioning
 
-- [ ] Add internal/apps/service.go with CreateDraft, UpdateDraft, Submit, ListMine, GetMine, ViewSecret, RotateSecret, and Revoke methods. Enforce TL1, active/non-silenced status, three-open-app limit, single owner, exact HTTPS callbacks, verified-domain matching, and safe logo MIME/size checks.
+- [ ] Add internal/apps/service.go with CreateDraft, UpdateDraft, Submit, ListMine, GetMine, ViewSecret, RotateSecret, and Revoke methods. Enforce TL1 (with `connect-admins` bypass), active/non-silenced status, three-open-app limit, single owner, exact HTTPS callbacks, verified-domain matching, and safe logo MIME/size checks; default creation queues Provisioning without manual review.
 - [ ] Add internal/reviews/service.go with reviewer authorization from configured Discourse groups, ListPending, Approve, Reject, and RequestChanges; approval must atomically transition to provisioning and enqueue an idempotent outbox event.
 - [ ] Add an outbox worker that creates the Hydra client only after approval, encrypts the returned secret, stores the client ID, retries transient failures with backoff, and records audit events. Never place credentials in logs.
 - [ ] Add Portal templates and static assets for app list, create/edit, submit, review queue, consent, secret confirmation, and error pages. Use server-rendered HTML with small progressive-enhancement JavaScript.

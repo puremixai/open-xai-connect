@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -38,9 +39,11 @@ type DraftInput struct {
 type Dependencies struct {
 	Status          identity.StatusLookup
 	Apps            store.ApplicationRepository
+	Outbox          store.OutboxRepository
 	Audit           store.AuditRepository
 	Box             *secrets.Box
 	Hydra           hydra.Client
+	RequireReview   bool
 	MaxOpen         int
 	SensitiveWindow time.Duration
 }
@@ -48,11 +51,13 @@ type Dependencies struct {
 type Service struct {
 	status          identity.StatusLookup
 	apps            store.ApplicationRepository
+	outbox          store.OutboxRepository
 	audit           store.AuditRepository
 	box             *secrets.Box
 	hydra           hydra.Client
 	maxOpen         int
 	sensitiveWindow time.Duration
+	requireReview   bool
 	now             func() time.Time
 }
 
@@ -66,9 +71,9 @@ func NewService(deps Dependencies) *Service {
 		window = 5 * time.Minute
 	}
 	return &Service{
-		status: deps.Status, apps: deps.Apps, audit: deps.Audit,
+		status: deps.Status, apps: deps.Apps, outbox: deps.Outbox, audit: deps.Audit,
 		box: deps.Box, hydra: deps.Hydra, maxOpen: maxOpen,
-		sensitiveWindow: window, now: time.Now,
+		sensitiveWindow: window, requireReview: deps.RequireReview, now: time.Now,
 	}
 }
 
@@ -78,6 +83,9 @@ func (s *Service) CreateDraft(ctx context.Context, subject string, input DraftIn
 	}
 	if s.apps == nil {
 		return domain.Application{}, errors.New("application repository is not initialized")
+	}
+	if !s.requireReview && s.outbox == nil {
+		return domain.Application{}, errors.New("outbox repository is not initialized")
 	}
 	count, err := s.apps.CountOpenByOwner(ctx, subject)
 	if err != nil {
@@ -106,6 +114,9 @@ func (s *Service) CreateDraft(ctx context.Context, subject string, input DraftIn
 	}
 	if err := s.auditEvent(ctx, subject, app.ID, "application.created"); err != nil {
 		return domain.Application{}, err
+	}
+	if !s.requireReview {
+		return s.startProvisioning(ctx, subject, app)
 	}
 	return app, nil
 }
@@ -146,6 +157,9 @@ func (s *Service) Submit(ctx context.Context, subject string, id domain.Applicat
 	if err := s.ensureEligible(ctx, subject); err != nil {
 		return domain.Application{}, err
 	}
+	if !s.requireReview && s.outbox == nil {
+		return domain.Application{}, errors.New("outbox repository is not initialized")
+	}
 	app, err := s.getOwned(ctx, subject, id)
 	if err != nil {
 		return domain.Application{}, err
@@ -159,14 +173,50 @@ func (s *Service) Submit(ctx context.Context, subject string, id domain.Applicat
 	if app.Status != domain.StatusDraft {
 		return domain.Application{}, ErrInvalidState
 	}
-	app, err = s.apps.Transition(ctx, id, domain.StatusDraft, domain.StatusPendingReview, s.now().UTC())
+	if s.requireReview {
+		app, err = s.apps.Transition(ctx, id, domain.StatusDraft, domain.StatusPendingReview, s.now().UTC())
+		if err != nil {
+			return domain.Application{}, err
+		}
+		if err := s.auditEvent(ctx, subject, id, "application.submitted"); err != nil {
+			return domain.Application{}, err
+		}
+		return app, nil
+	}
+	return s.startProvisioning(ctx, subject, app)
+}
+
+func (s *Service) startProvisioning(ctx context.Context, subject string, app domain.Application) (domain.Application, error) {
+	if s == nil || s.apps == nil || s.outbox == nil {
+		return domain.Application{}, errors.New("provisioning dependencies are not initialized")
+	}
+	started, err := s.apps.Transition(ctx, app.ID, app.Status, domain.StatusProvisioning, s.now().UTC())
 	if err != nil {
 		return domain.Application{}, err
 	}
-	if err := s.auditEvent(ctx, subject, id, "application.submitted"); err != nil {
+	if err := s.enqueueProvisioning(ctx, started); err != nil {
+		started.Status = app.Status
+		started.UpdatedAt = s.now().UTC()
+		_ = s.apps.Save(ctx, started)
 		return domain.Application{}, err
 	}
-	return app, nil
+	if err := s.auditEvent(ctx, subject, app.ID, "application.provisioning_started"); err != nil {
+		return domain.Application{}, err
+	}
+	return started, nil
+}
+
+func (s *Service) enqueueProvisioning(ctx context.Context, app domain.Application) error {
+	payload, err := json.Marshal(map[string]string{"application_id": string(app.ID)})
+	if err != nil {
+		return err
+	}
+	now := s.now().UTC()
+	return s.outbox.Enqueue(ctx, domain.OutboxEvent{
+		ID: newOutboxID(), IdempotencyKey: "application:" + string(app.ID) + ":provision",
+		Kind: "application.provision", ApplicationID: app.ID, Payload: payload,
+		AvailableAt: now, CreatedAt: now,
+	})
 }
 
 func (s *Service) ListMine(ctx context.Context, subject string) ([]domain.Application, error) {
@@ -391,6 +441,14 @@ func newAuditID() string {
 		return "audit_fallback"
 	}
 	return "audit_" + base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func newOutboxID() string {
+	raw := make([]byte, 12)
+	if _, err := rand.Read(raw); err != nil {
+		return "outbox_fallback"
+	}
+	return "outbox_" + base64.RawURLEncoding.EncodeToString(raw)
 }
 
 func secretAssociatedData(app domain.Application) string {

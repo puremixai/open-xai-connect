@@ -33,7 +33,7 @@ func newAppService(status identity.StatusSnapshot) (*Service, *memory.Applicatio
 	repo := memory.NewApplicationRepository()
 	service := NewService(Dependencies{
 		Status: appStatusLookup{status: status},
-		Apps:   repo, Audit: memory.NewAuditRepository(),
+		Apps:   repo, Outbox: memory.NewOutboxRepository(), Audit: memory.NewAuditRepository(), RequireReview: true,
 		Box: mustTestBox(), Hydra: hydra.NewFake(),
 		MaxOpen: 3, SensitiveWindow: 5 * time.Minute,
 	})
@@ -87,6 +87,57 @@ func TestCreateDraftAllowsActiveConnectAdminBelowTL1(t *testing.T) {
 	})
 	if _, err := service.CreateDraft(context.Background(), "sub_admin", validDraftInput()); err != nil {
 		t.Fatalf("admin CreateDraft() error = %v", err)
+	}
+}
+
+func TestCreateDraftStartsProvisioningWithoutReview(t *testing.T) {
+	repo := memory.NewApplicationRepository()
+	outbox := memory.NewOutboxRepository()
+	service := NewService(Dependencies{
+		Status: appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		Apps:   repo, Outbox: outbox, Audit: memory.NewAuditRepository(), Box: mustTestBox(), Hydra: hydra.NewFake(),
+	})
+	service.now = func() time.Time { return time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC) }
+	app, err := service.CreateDraft(context.Background(), "sub_1", validDraftInput())
+	if err != nil {
+		t.Fatalf("CreateDraft() error = %v", err)
+	}
+	if app.Status != domain.StatusProvisioning {
+		t.Fatalf("CreateDraft() status = %s, want provisioning", app.Status)
+	}
+	event, err := outbox.ClaimNext(context.Background(), service.now())
+	if err != nil {
+		t.Fatalf("ClaimNext() error = %v", err)
+	}
+	if event.Kind != "application.provision" || event.ApplicationID != app.ID {
+		t.Fatalf("provision event = %#v", event)
+	}
+}
+
+func TestSubmitStartsProvisioningForAnExistingDraftWithoutReview(t *testing.T) {
+	repo := memory.NewApplicationRepository()
+	app := domain.Application{
+		ID: "app_existing", OwnerSubject: "sub_1", Name: "Existing draft", Status: domain.StatusDraft,
+		CallbackURLs: []string{"https://app.example/callback"}, VerifiedDomains: []string{"app.example"},
+	}
+	if err := repo.Create(context.Background(), app); err != nil {
+		t.Fatalf("seed draft: %v", err)
+	}
+	outbox := memory.NewOutboxRepository()
+	service := NewService(Dependencies{
+		Status: appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		Apps:   repo, Outbox: outbox, Audit: memory.NewAuditRepository(), Box: mustTestBox(), Hydra: hydra.NewFake(),
+	})
+	service.now = func() time.Time { return time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC) }
+	updated, err := service.Submit(context.Background(), "sub_1", app.ID)
+	if err != nil {
+		t.Fatalf("Submit() error = %v", err)
+	}
+	if updated.Status != domain.StatusProvisioning {
+		t.Fatalf("Submit() status = %s, want provisioning", updated.Status)
+	}
+	if _, err := outbox.ClaimNext(context.Background(), service.now()); err != nil {
+		t.Fatalf("ClaimNext() error = %v", err)
 	}
 }
 

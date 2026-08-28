@@ -57,7 +57,7 @@ func (a *Application) Transition(to ApplicationStatus, now time.Time) error {
 func validTransition(from, to ApplicationStatus) bool {
 	switch from {
 	case StatusDraft:
-		return to == StatusPendingReview
+		return to == StatusPendingReview || to == StatusProvisioning
 	case StatusPendingReview:
 		return to == StatusProvisioning || to == StatusRejected || to == StatusChangesRequested
 	case StatusProvisioning:

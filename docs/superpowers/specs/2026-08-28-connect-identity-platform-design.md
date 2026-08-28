@@ -15,14 +15,14 @@
 
 平台的产品形态参考 LINUX DO Connect，但不复制其可能扩大数据暴露面的设计。Discourse 始终是唯一账号源；Connect 不提供独立注册、密码、找回密码或用户资料编辑功能。
 
-第一版成功标准是：一个符合资格的论坛用户能够创建并提交应用，管理员审核通过后签发正式 Client ID/Secret，任意可登录的论坛用户能够通过标准 OIDC 授权码流程登录该应用，并且第三方只能取得本设计明确允许的最小资料集。
+第一版成功标准是：一个符合资格的论坛用户能够创建应用，平台自动完成 Provisioning 并签发正式 Client ID/Secret，任意可登录的论坛用户能够通过标准 OIDC 授权码流程登录该应用，并且第三方只能取得本设计明确允许的最小资料集。
 
 ## 2. 已确认的产品决策
 
 | 决策 | 结论 |
 |---|---|
 | 开发者准入 | 普通用户需 Discourse 信任等级 TL1 及以上；`connect-admins` 成员可绕过 TL1，所有用户都必须账号正常且未被禁言 |
-| 应用创建 | 用户自助创建并提交人工审核 |
+| 应用创建 | 用户自助创建；默认自动进入 Provisioning，不经过人工审核 |
 | 凭证开放方式 | 不设置测试模式；审核通过后直接签发正式凭证并向全部用户开放 |
 | 客户端类型 | 第一版仅支持拥有服务端的保密 Web Client |
 | 身份源 | Discourse 是唯一账号源；Connect 仅保存映射、会话和业务数据 |
@@ -135,7 +135,7 @@ DiscourseConnect Provider 提供登录签名。一个独立的 `discourse-connec
 4. Discourse 返回 HMAC-SHA256 签名身份载荷。
 5. Portal 验证签名、nonce、返回地址和账号状态，然后建立 Connect Session。
 
-论坛用户天然是 Connect 用户；普通用户达到 TL1 且账号正常、未被禁言即可创建和提交应用，`connect-admins` 成员在账号正常且未被禁言时可绕过 TL1。
+论坛用户天然是 Connect 用户；普通用户达到 TL1 且账号正常、未被禁言即可创建应用，`connect-admins` 成员在账号正常且未被禁言时可绕过 TL1。应用创建后默认自动进入 Provisioning，不需要人工提交审核。
 
 ### 5.2 Connect 用户映射
 
@@ -163,9 +163,9 @@ connect_users
 
 - `active=false`、账号停用或封禁：不能开始新的 Connect 登录或授权。
 - `silenced=true`：仍允许登录第三方应用，但 UserInfo 明确返回禁言状态。
-- 开发者信任等级降至 TL1 以下：不能创建、提交或重新提交应用；已经上线的应用不自动下线。
-- `connect-admins` 成员即使低于 TL1，仍可在账号正常且未被禁言时创建、提交和重新提交应用。
-- 开发者被禁言：仍可作为普通用户登录第三方应用，但暂停创建、提交和修改应用；已经上线的应用不自动下线。
+- 开发者信任等级降至 TL1 以下：不能创建应用；已经上线的应用不自动下线。
+- `connect-admins` 成员即使低于 TL1，仍可在账号正常且未被禁言时创建应用。
+- 开发者被禁言：仍可作为普通用户登录第三方应用，但暂停创建应用；已经上线的应用不自动下线。
 - 应用所有者被封禁：冻结其 Portal 管理权限并通知管理员，现有应用不自动停机。
 
 ## 6. 应用创建、审核与发布
@@ -174,7 +174,7 @@ connect_users
 
 - 信任等级 TL1 及以上，或属于 `connect-admins` 群组。
 - 账号活跃、未封禁、未禁言。
-- 默认每个开发者最多拥有 3 个“待审核、变更待审核或已上线”应用。
+- 默认每个开发者最多拥有 3 个开放中的应用（包含 Provisioning 和已上线应用）。
 - 管理员可对指定用户调整数量限制，所有调整必须记录审计。
 - 第一版每个应用只有一个所有者；管理员可以转移所有权。
 
@@ -205,7 +205,8 @@ connect_users
 ```mermaid
 stateDiagram-v2
     [*] --> draft
-    draft --> pending_review: 提交
+    draft --> provisioning: 创建后自动 Provisioning
+    draft --> pending_review: 历史/特殊审核流程
     pending_review --> rejected: 驳回
     rejected --> draft: 修改
     pending_review --> provisioning: 批准
@@ -221,13 +222,13 @@ stateDiagram-v2
     suspended --> archived: 管理员归档
 ```
 
-应用处于草稿、待审核或驳回状态时，不创建 Hydra Client，也不签发凭证。审核通过后先进入 `provisioning`；只有 Hydra Client 创建、Secret 加密保存和 Portal 映射全部成功，应用才进入 `approved`。
+应用处于草稿、待审核或驳回状态时，不创建 Hydra Client，也不签发凭证。默认创建后直接进入 `provisioning`；只有 Hydra Client 创建、Secret 加密保存和 Portal 映射全部成功，应用才进入 `approved`。历史或特殊的 `pending_review` 应用仍可由审核员或管理员处理。
 
 Portal 使用数据库事务与 Outbox 驱动 Hydra 调用。重复执行同一 provisioning 任务必须幂等，不能创建多个 Hydra Client。
 
 ### 6.5 人工审核
 
-审核员来自 Discourse `connect-reviewers` 群组，管理员来自 `connect-admins` 群组。审核内容至少包含：
+审核员来自 Discourse `connect-reviewers` 群组，管理员来自 `connect-admins` 群组。默认创建流程不需要人工审核；审核队列用于历史或特殊的 `pending_review` 应用。审核内容至少包含：
 
 - 开发者资格和应用用途。
 - Logo、名称和品牌冒用风险。
@@ -273,7 +274,7 @@ POST /userinfo
 
 Hydra 提供 Discovery、JWKS、Authorization、Token 和 Revoke。`/userinfo` 由 Connect Portal 作为受保护资源端点提供：Portal 通过私有 Hydra 接口验证 opaque Access Token，再检查用户和应用当前状态后返回最新允许字段。Discovery 中的 `userinfo_endpoint` 仍为同一公开地址。
 
-Hydra 的动态客户端注册接口不得通过公网暴露。所有 Client 只能由 Portal 在审核通过后通过私有 Admin API 创建。
+Hydra 的动态客户端注册接口不得通过公网暴露。所有 Client 只能由 Portal 在自动 Provisioning 或明确审核通过后通过私有 Admin API 创建。
 
 ### 7.3 Scope 与 Claim
 
@@ -511,7 +512,7 @@ OAuth 端点返回标准错误码；Portal 页面显示不含内部细节的用�
 
 - TL0 用户不能创建应用，TL1 用户可以创建。
 - 域名验证、提交、驳回、修改、批准和 provisioning。
-- 审核通过后直接面向全部用户开放。
+- Provisioning 成功后直接面向全部用户开放。
 - 首次授权、记住授权、重新授权和撤销。
 - Secret 重新认证、明文查看和重置。
 - 上线变更审核期间旧版本持续可用。
@@ -530,9 +531,9 @@ OAuth 端点返回标准错误码；Portal 页面显示不含内部细节的用�
 第一版必须同时满足：
 
 1. Discourse 是唯一账号源，Connect 不保存或处理用户密码。
-2. TL1 且账号正常、未禁言的普通用户，以及账号正常、未禁言的 `connect-admins` 成员，可以创建并提交应用。
-3. 未审核应用没有 Hydra Client 和正式凭证。
-4. 审核通过后正式 Client 创建成功，应用立即向全部可登录论坛用户开放。
+2. TL1 且账号正常、未禁言的普通用户，以及账号正常、未禁言的 `connect-admins` 成员，可以创建应用。
+3. 创建后应用自动进入 Provisioning，未完成 Provisioning 前没有 Hydra Client 和正式凭证。
+4. Provisioning 成功后正式 Client 创建成功，应用立即向全部可登录论坛用户开放。
 5. 应用所有者可以在近期敏感操作确认后再次查看明文 Client Secret。
 6. 第三方服务端可以依据 Discovery 完成 OIDC Authorization Code + PKCE 登录。
 7. UserInfo 只能返回本设计批准的最小字段，任何禁止字段均不可出现。
