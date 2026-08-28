@@ -5,12 +5,13 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 )
 
 func TestVerifierAcceptsValidSignedRequest(t *testing.T) {
-	now := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 	nonces := NewMemoryNonceStore()
 	verifier, err := NewVerifier([]byte("shared-secret"), 5*time.Minute, nonces)
 	if err != nil {
@@ -20,7 +21,7 @@ func TestVerifierAcceptsValidSignedRequest(t *testing.T) {
 	body := []byte("{\"subject\":\"sub_1\"}")
 	request := httptest.NewRequest(http.MethodPost, "https://connect.example/connect/identity/events", bytes.NewReader(body))
 	nonce := "nonce-1"
-	request.Header.Set("X-Connect-Timestamp", "1787918400")
+	request.Header.Set("X-Connect-Timestamp", strconv.FormatInt(now.Unix(), 10))
 	request.Header.Set("X-Connect-Nonce", nonce)
 	request.Header.Set("X-Connect-Signature", Sign([]byte("shared-secret"), request.Method, request.URL.RequestURI(), now, nonce, body))
 
@@ -30,7 +31,7 @@ func TestVerifierAcceptsValidSignedRequest(t *testing.T) {
 }
 
 func TestVerifierRejectsExpiredAndReplayedRequests(t *testing.T) {
-	now := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 	nonces := NewMemoryNonceStore()
 	verifier, err := NewVerifier([]byte("shared-secret"), 5*time.Minute, nonces)
 	if err != nil {
@@ -40,7 +41,7 @@ func TestVerifierRejectsExpiredAndReplayedRequests(t *testing.T) {
 	body := []byte("payload")
 	makeRequest := func(timestamp time.Time, nonce string) *http.Request {
 		request := httptest.NewRequest(http.MethodPost, "https://connect.example/events", bytes.NewReader(body))
-		request.Header.Set("X-Connect-Timestamp", "1787918400")
+		request.Header.Set("X-Connect-Timestamp", strconv.FormatInt(timestamp.Unix(), 10))
 		request.Header.Set("X-Connect-Nonce", nonce)
 		request.Header.Set("X-Connect-Signature", Sign([]byte("shared-secret"), request.Method, request.URL.RequestURI(), timestamp, nonce, body))
 		return request
@@ -59,7 +60,7 @@ func TestVerifierRejectsExpiredAndReplayedRequests(t *testing.T) {
 }
 
 func TestVerifierRejectsInvalidSignatureAndMissingHeaders(t *testing.T) {
-	now := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 	verifier, err := NewVerifier([]byte("shared-secret"), 5*time.Minute, NewMemoryNonceStore())
 	if err != nil {
 		t.Fatalf("NewVerifier() error = %v", err)
@@ -67,7 +68,7 @@ func TestVerifierRejectsInvalidSignatureAndMissingHeaders(t *testing.T) {
 	verifier.now = func() time.Time { return now }
 	body := []byte("payload")
 	request := httptest.NewRequest(http.MethodPost, "https://connect.example/events", bytes.NewReader(body))
-	request.Header.Set("X-Connect-Timestamp", "1787918400")
+	request.Header.Set("X-Connect-Timestamp", strconv.FormatInt(now.Unix(), 10))
 	request.Header.Set("X-Connect-Nonce", "nonce")
 	request.Header.Set("X-Connect-Signature", Sign([]byte("wrong-secret"), request.Method, request.URL.RequestURI(), now, "nonce", body))
 	if err := verifier.Verify(context.Background(), request, body); err == nil {

@@ -1,3 +1,66 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>授权 · XAI Connect</title><style>body{font:16px system-ui,sans-serif;max-width:620px;margin:3rem auto;padding:0 1rem;color:#17202a}section{border:1px solid #d9e0e7;border-radius:.6rem;padding:1.25rem}button{padding:.65rem 1rem;border:0;border-radius:.45rem;background:#1769e0;color:#fff}button[name=decision]{background:#66727f}</style></head>
-<body><main><section><h1>{{.Client.Name}} 请求访问</h1><p>该应用将获得以下权限：</p><ul>{{range .Scopes}}<li>{{.}}</li>{{end}}</ul><form method="post" action="{{.Action}}"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button name="decision" value="allow">允许</button> <button name="decision" value="deny">拒绝</button></form></section></main></body></html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <title>授权 · XAI Connect</title>
+  <style>
+    :root { color-scheme: light; --ink: #17212b; --ink-soft: #526171; --muted: #758395; --line: #dbe2e9; --surface: #f4f6f8; --panel: #fff; --accent: #f6821f; --accent-hover: #ff9a45; --accent-strong: #a94700; --accent-wash: #fff1e5; --radius: 10px; --radius-sm: 6px; }
+    @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --ink: #f0f4f7; --ink-soft: #bdc8d1; --muted: #8d9ba8; --line: #2c3944; --surface: #111920; --panel: #18232c; --accent: #f59b52; --accent-hover: #ffb473; --accent-strong: #ffc18d; --accent-wash: #3b2a1e; } }
+    * { box-sizing: border-box; }
+    body { min-height: 100dvh; margin: 0; color: var(--ink); background: var(--surface); font: 14px/1.55 "Aptos", "Segoe UI Variable", "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+    button, input { font: inherit; }
+    button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 3px; }
+    .consent-shell { display: grid; place-items: center; min-height: 100dvh; padding: 32px 18px; }
+    .consent-card { width: min(680px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+    .consent-top { display: flex; align-items: center; gap: 11px; padding: 22px 25px; border-bottom: 1px solid var(--line); }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; color: #18232c; background: var(--accent); border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; }
+    .brand-name { display: block; font-size: 15px; font-weight: 600; }
+    .brand-subtitle { display: block; margin-top: -2px; color: var(--muted); font-size: 11px; }
+    .consent-content { padding: 29px 25px 25px; }
+    .eyebrow { margin: 0 0 9px; color: var(--accent-strong); font-size: 11px; }
+    h1 { margin: 0 0 10px; color: var(--ink); font-size: clamp(27px, 4vw, 36px); line-height: 1.12; font-weight: 600; }
+    .lead { margin: 0 0 24px; color: var(--ink-soft); }
+    .scope-heading { margin: 0 0 9px; color: var(--ink); font-size: 16px; font-weight: 600; }
+    .scope-list { display: grid; gap: 9px; margin: 0 0 22px; padding: 0; list-style: none; }
+    .scope-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px 11px 13px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); }
+    .scope-item code { color: var(--ink); font: 13px/1.3 "Cascadia Mono", "SFMono-Regular", Consolas, monospace; }
+    .consent-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 19px; border-top: 1px solid var(--line); }
+    .remember { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-soft); font-size: 13px; }
+    .remember input { width: 15px; height: 15px; accent-color: var(--accent-strong); }
+    .consent-actions { display: flex; gap: 9px; }
+    .button { min-height: 41px; padding: 0 16px; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: var(--radius-sm); cursor: pointer; }
+    .button:hover { color: var(--accent-strong); background: var(--surface); }
+    .button-primary { color: #17212b; background: var(--accent); border-color: var(--accent); font-weight: 500; }
+    .button-primary:hover { color: #17212b; background: var(--accent-hover); border-color: var(--accent-hover); }
+    @media (max-width: 560px) { .consent-shell { padding: 16px; } .consent-top { padding: 18px; } .consent-content { padding: 24px 18px 19px; } .consent-footer { align-items: flex-start; flex-direction: column; } .consent-actions, .consent-actions .button { width: 100%; } .consent-actions .button { flex: 1; } }
+  </style>
+</head>
+<body>
+<main class="consent-shell">
+  <section class="consent-card" aria-labelledby="consent-title">
+    <header class="consent-top">
+      <span class="brand-mark" aria-hidden="true">XC</span>
+      <span><span class="brand-name">XAI Connect</span><span class="brand-subtitle">安全身份授权</span></span>
+    </header>
+    <div class="consent-content">
+      <p class="eyebrow">授权请求</p>
+      <h1 id="consent-title">{{.Client.Name}} 请求访问</h1>
+      <p class="lead">确认后，{{.Client.Name}} 将使用你的 xai.run 身份完成登录。</p>
+      <h2 class="scope-heading">该应用将获得以下权限</h2>
+      <ul class="scope-list">
+        {{range .Scopes}}<li class="scope-item"><code>{{.}}</code></li>{{end}}
+      </ul>
+      <form method="post" action="{{.Action}}">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <div class="consent-footer">
+          <label class="remember"><input type="checkbox" name="remember" value="1">下次不再询问此应用</label>
+          <div class="consent-actions"><button class="button" name="decision" value="deny" type="submit">拒绝</button><button class="button button-primary" name="decision" value="allow" type="submit">允许访问</button></div>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+</body>
+</html>
