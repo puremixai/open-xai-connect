@@ -33,6 +33,7 @@ func RegisterConsentRoutes(mux *http.ServeMux, handler *ConsentHTTPHandler) {
 }
 
 func (h *ConsentHTTPHandler) handle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	if h == nil || h.service == nil || h.sessions == nil {
 		h.errorPage(w, http.StatusServiceUnavailable, "服务未配置", "授权服务未配置")
 		return

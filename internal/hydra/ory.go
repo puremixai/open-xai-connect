@@ -80,6 +80,9 @@ func (c *OryClient) UpdateClient(ctx context.Context, clientID string, registrat
 }
 
 func (c *OryClient) DeleteClient(ctx context.Context, clientID string) error {
+	if c == nil || c.API == nil {
+		return errors.New("Hydra client is not initialized")
+	}
 	if clientID == "" {
 		return errors.New("Hydra client ID is required")
 	}

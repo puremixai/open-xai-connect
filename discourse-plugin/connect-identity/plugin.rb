@@ -17,7 +17,6 @@ after_initialize do
   require_relative "jobs/regular/connect_identity_publish_status"
   require_relative "app/controllers/connect_identity/base_controller"
   require_relative "app/controllers/connect_identity/users_controller"
-  require_relative "app/controllers/connect_identity/events_controller"
 
   unless ConnectIdentity::Configuration.valid?
     Rails.logger.warn("connect-identity is disabled because its HTTPS base URL or shared secret is not configured")
@@ -26,7 +25,6 @@ after_initialize do
 
   Discourse::Application.routes.append do
     get "/connect/identity/users/:id" => "connect_identity/users#show"
-    post "/connect/identity/events" => "connect_identity/events#create"
   end
 
   on(:user_updated) do |user|

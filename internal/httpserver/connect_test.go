@@ -41,6 +41,24 @@ func TestConnectLoginRequiresChallengeAndRedirectsToDiscourse(t *testing.T) {
 	}
 }
 
+func TestConnectLoginCanStartSessionOnlyLogin(t *testing.T) {
+	var gotReturnTo string
+	handler := New(Dependencies{Register: func(mux *http.ServeMux) {
+		RegisterConnectRoutes(mux, ConnectDependencies{
+			BeginSessionLogin: func(_ context.Context, returnTo string) (string, error) {
+				gotReturnTo = returnTo
+				return "https://forum.example/session/sso?return=portal", nil
+			},
+		})
+	}})
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/connect/login?return_to=%2Fconnect%2Fapps", nil)
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusFound || gotReturnTo != "/connect/apps" {
+		t.Fatalf("status/return_to = %d/%q", response.Code, gotReturnTo)
+	}
+}
+
 func TestConnectCallbackEstablishesSessionAndRedirects(t *testing.T) {
 	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
 	handler := New(Dependencies{
@@ -63,6 +81,23 @@ func TestConnectCallbackEstablishesSessionAndRedirects(t *testing.T) {
 	}
 	if len(response.Result().Cookies()) != 1 {
 		t.Fatal("callback did not set a session cookie")
+	}
+}
+
+func TestConnectCallbackAcceptsHydraHTTPSRedirect(t *testing.T) {
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	handler := New(Dependencies{Register: func(mux *http.ServeMux) {
+		RegisterConnectRoutes(mux, ConnectDependencies{
+			Sessions: sessions,
+			CompleteLogin: func(_ context.Context, _ *http.Request) (string, string, error) {
+				return "sub_1", "https://hydra.example/oauth2/auth?login_verifier=v", nil
+			},
+		})
+	}})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/connect/callback", nil))
+	if response.Code != http.StatusSeeOther || response.Header().Get("Location") != "https://hydra.example/oauth2/auth?login_verifier=v" {
+		t.Fatalf("status/location = %d/%q", response.Code, response.Header().Get("Location"))
 	}
 }
 

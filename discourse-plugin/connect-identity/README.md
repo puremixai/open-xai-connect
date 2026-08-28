@@ -14,7 +14,8 @@
 服务接口：
 
 - GET /connect/identity/users/:id
-- POST /connect/identity/events
+
+状态变更由插件后台任务主动 POST 到 Portal 的 `/connect/identity/events`；Discourse 端不开放一个会把事件再转发回 Portal 的同名入口，避免事件回环。
 
 两个接口都要求 X-Connect-Timestamp、X-Connect-Nonce 和 X-Connect-Signature。响应只包含 Discourse ID、用户名、昵称、头像、信任等级和账号状态，以及仅供 Portal 后台访问控制使用的 connect_reviewer / connect_admin 布尔值；不会返回邮箱、任意群组、外部账号或 API Key。
 

@@ -23,6 +23,7 @@ type ConnectDependencies struct {
 
 func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
 	mux.HandleFunc("/connect/login", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -62,6 +63,7 @@ func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
 	})
 
 	mux.HandleFunc("/connect/callback", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		if r.Method != http.MethodGet || deps.Sessions == nil || deps.CompleteLogin == nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "login callback is not configured"})
 			return
@@ -83,6 +85,7 @@ func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
 	})
 
 	mux.HandleFunc("/connect/me", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		if r.Method != http.MethodGet || deps.Sessions == nil {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "not authenticated"})
 			return
@@ -96,6 +99,7 @@ func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
 	})
 
 	mux.HandleFunc("/connect/logout", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		if r.Method != http.MethodPost || deps.Sessions == nil {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return

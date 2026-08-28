@@ -52,6 +52,12 @@ func newPublicProxy(upstream string, client *http.Client, requiredPath string) (
 		return nil, errors.New("Hydra public URL must be absolute")
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	if requiredPath == "" {
+		proxy.ModifyResponse = func(response *http.Response) error {
+			response.Header.Set("Cache-Control", "no-store")
+			return nil
+		}
+	}
 	if client != nil {
 		proxy.Transport = client.Transport
 	}

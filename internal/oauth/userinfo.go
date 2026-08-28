@@ -27,6 +27,7 @@ func NewUserInfoService(hydraClient hydra.Client, status identity.StatusLookup, 
 }
 
 func (s *UserInfoService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		w.Header().Set("Allow", "GET, POST")
 		writeUserInfoError(w, http.StatusMethodNotAllowed, "method_not_allowed")

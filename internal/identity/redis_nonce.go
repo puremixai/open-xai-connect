@@ -2,6 +2,8 @@ package identity
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"time"
@@ -32,5 +34,6 @@ func (s *RedisNonceStore) CheckAndStore(ctx context.Context, nonce string, expir
 	if ttl <= 0 {
 		return false, ErrExpiredRequest
 	}
-	return s.Client.SetNX(ctx, s.Prefix+nonce, "1", ttl).Result()
+	sum := sha256.Sum256([]byte(nonce))
+	return s.Client.SetNX(ctx, s.Prefix+hex.EncodeToString(sum[:]), "1", ttl).Result()
 }
