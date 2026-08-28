@@ -30,7 +30,7 @@ services:
       retries: 10
 
   hydra-migrate:
-    image: oryd/hydra:v26.3.10
+    image: oryd/hydra:v26.2.0
     restart: "no"
     depends_on:
       postgres:
@@ -40,7 +40,7 @@ services:
       DSN: postgres://${POSTGRES_USER:-connect}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
 
   hydra:
-    image: oryd/hydra:v26.3.10
+    image: oryd/hydra:v26.2.0
     restart: unless-stopped
     depends_on:
       hydra-migrate:

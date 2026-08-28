@@ -4,9 +4,9 @@
 
 **Goal:** Build a standalone Go service at connect.xai.run that lets approved third-party web applications authenticate users with their Discourse accounts through OIDC, while keeping Discourse as the only source of identity.
 
-**Architecture:** A Go Portal owns application registration, review, consent, sessions, current user status, and admin workflows. Ory Hydra v26.3.10 owns OAuth/OIDC protocol state and token signing. A small Discourse plugin verifies signed callbacks and exposes the minimum user/status data to the Portal. PostgreSQL stores durable state, Redis stores short-lived sessions and rate limits.
+**Architecture:** A Go Portal owns application registration, review, consent, sessions, current user status, and admin workflows. Ory Hydra v26.2.0 owns OAuth/OIDC protocol state and token signing. A small Discourse plugin verifies signed callbacks and exposes the minimum user/status data to the Portal. PostgreSQL stores durable state, Redis stores short-lived sessions and rate limits.
 
-**Tech Stack:** Go, net/http, html/template, PostgreSQL with pgx/v5, Redis with go-redis/v9, Ory Hydra v26.3.10 and github.com/ory/hydra-client-go/v26, Docker Compose, and Ruby/RSpec for the Discourse plugin.
+**Tech Stack:** Go, net/http, html/template, PostgreSQL with pgx/v5, Redis with go-redis/v9, Ory Hydra v26.2.0 and github.com/ory/hydra-client-go/v26, Docker Compose, and Ruby/RSpec for the Discourse plugin.
 
 **Spec:** docs/superpowers/specs/2026-08-28-connect-identity-platform-design.md
 
@@ -82,7 +82,7 @@
 
 ## Task 7: Package deployment, integration tests, and operator documentation
 
-- [ ] Add deploy/docker-compose.yml for Portal, Hydra v26.3.10, PostgreSQL, and Redis; expose only Hydra public and Portal public ports, keeping Hydra admin on the internal network.
+- [ ] Add deploy/docker-compose.yml for Portal, Hydra v26.2.0, PostgreSQL, and Redis; expose only Hydra public and Portal public ports, keeping Hydra admin on the internal network.
 - [ ] Add .env.example, Hydra config/template, reverse-proxy example for connect.xai.run, health checks, backup notes, key rotation procedure, and scripts/check-compose.ps1.
 - [ ] Add docs/integration-guide.md, docs/operator-runbook.md, and examples/go-client showing discovery, PKCE authorization, token exchange, UserInfo, refresh rotation, and logout without embedding real secrets.
 - [ ] Add an integration test that starts fake Discourse and fake Hydra services, submits an app, approves it, completes login/consent, validates claims, revokes the session, and verifies suspended-user denial.
