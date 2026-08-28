@@ -96,7 +96,7 @@ func (p *SSOProvider) Begin(_ context.Context, returnTo, challenge string) (stri
 	raw := base64.StdEncoding.EncodeToString([]byte(payload.Encode()))
 	signature := hmacHex(p.secret, raw)
 	provider := *p.baseURL
-	provider.Path = strings.TrimRight(provider.Path, "/") + "/session/sso"
+	provider.Path = strings.TrimRight(provider.Path, "/") + "/session/sso_provider"
 	provider.RawQuery = url.Values{"sso": []string{raw}, "sig": []string{signature}}.Encode()
 	return provider.String(), nil
 }

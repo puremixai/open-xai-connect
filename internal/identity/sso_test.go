@@ -27,6 +27,9 @@ func TestSSOProviderRoundTripAndReplayProtection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if redirect.Path != "/session/sso_provider" {
+		t.Fatalf("provider path = %q", redirect.Path)
+	}
 	rawSSO := redirect.Query().Get("sso")
 	signature := redirect.Query().Get("sig")
 	decoded, err := base64.StdEncoding.DecodeString(rawSSO)
