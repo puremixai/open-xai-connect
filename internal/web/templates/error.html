@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101820">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)">
   <title>{{.Title}} · XAI Connect</title>
   <link rel="stylesheet" href="/connect/assets/error.css">
 </head>
@@ -14,10 +15,10 @@
       <span class="brand-mark" aria-hidden="true">XC</span>
       <span><span class="brand-name">XAI Connect</span><span class="brand-subtitle">身份与应用控制台</span></span>
     </a>
-    <div class="error-code">请求未完成</div>
+    <div><span class="error-code">请求未完成</span></div>
     <h1 id="error-title">{{.Title}}</h1>
     <p class="error-message">{{.Message}}</p>
-    <a class="error-action" href="{{.Back}}">返回上一页</a>
+    <a class="button" href="{{.Back}}">返回上一页</a>
   </section>
 </main>
 </body>

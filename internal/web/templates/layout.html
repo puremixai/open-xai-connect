@@ -5,14 +5,13 @@
 <body class="portal-body">
 <a class="skip-link" href="#main-content">跳到主要内容</a>
 {{template "portal-topbar" .}}
-<div class="portal-frame">
-{{template "portal-sidebar" .}}
 <main id="main-content" class="portal-main">
+<div class="portal-container">
 {{end}}
 
 {{define "portal-page-end"}}
-</main>
 </div>
+</main>
 </body>
 </html>
 {{end}}
@@ -21,7 +20,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101820">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)">
   <meta name="description" content="XAI Connect 身份与应用控制台">
   <title>{{if .PageTitle}}{{.PageTitle}} · {{end}}XAI Connect</title>
   <link rel="stylesheet" href="/connect/assets/portal.css">
@@ -30,45 +30,29 @@
 
 {{define "portal-topbar"}}
 <header class="portal-topbar">
-  <div class="portal-topbar-left">
+  <div class="topbar-inner">
     <a class="portal-brand" href="/connect/apps">
       <span class="brand-mark" aria-hidden="true">XC</span>
-      <span><span class="brand-name">XAI Connect</span><span class="brand-subtitle">身份与应用控制台</span></span>
+      <span class="brand-name">XAI Connect</span>
     </a>
-    <span class="topbar-context">Connect / developer console</span>
-  </div>
-  <div class="portal-topbar-actions">
-    <span class="sync-chip"><span class="sync-dot" aria-hidden="true"></span>账号同步正常</span>
-    <a class="topbar-link" href="https://xai.run" target="_blank" rel="noreferrer">返回 xai.run</a>
-    <span class="user-chip"><span class="user-avatar" aria-hidden="true">{{.Layout.UserInitial}}</span><span>{{.Layout.UserLabel}}</span>{{if .Layout.IsAdmin}}<span class="role-label">管理员</span>{{else if .Layout.IsReviewer}}<span class="role-label">审核员</span>{{end}}</span>
-    <form class="logout-form" method="post" action="/connect/logout">
-      <input type="hidden" name="csrf_token" value="{{.Layout.CSRFToken}}">
-      <button class="logout-button" type="submit">退出</button>
-    </form>
+    <nav class="portal-nav" aria-label="主导航">
+      <a class="{{if eq .Layout.Active "apps"}}is-active{{end}}" href="/connect/apps">应用总览</a>
+      <a class="{{if eq .Layout.Active "new"}}is-active{{end}}" href="/connect/apps/new">创建应用</a>
+      {{if .Layout.IsReviewer}}<a class="{{if eq .Layout.Active "review"}}is-active{{end}}" href="/connect/review">应用审核</a>{{end}}
+      {{if .Layout.IsAdmin}}<a class="{{if eq .Layout.Active "admin"}}is-active{{end}}" href="/connect/admin">运营概览</a>{{end}}
+    </nav>
+    <div class="topbar-actions">
+      <a class="topbar-link" href="https://github.com/puremixai/xai-connect#接入前提" target="_blank" rel="noreferrer">接入文档</a>
+      <span class="user-chip">
+        <span class="user-avatar" aria-hidden="true">{{.Layout.UserInitial}}</span>
+        <span class="user-name">{{.Layout.UserLabel}}</span>
+        {{if .Layout.IsAdmin}}<span class="role-label">管理员</span>{{else if .Layout.IsReviewer}}<span class="role-label">审核员</span>{{end}}
+      </span>
+      <form class="logout-form" method="post" action="/connect/logout">
+        <input type="hidden" name="csrf_token" value="{{.Layout.CSRFToken}}">
+        <button class="logout-button" type="submit">退出</button>
+      </form>
+    </div>
   </div>
 </header>
-{{end}}
-
-{{define "portal-sidebar"}}
-<aside class="portal-sidebar">
-  <div class="sidebar-product"><strong>开发者工作台</strong><span>管理身份接入与 OAuth 应用</span></div>
-  <div class="sidebar-kicker">工作台</div>
-  <nav class="portal-nav" aria-label="主导航">
-    <a class="{{if eq .Layout.Active "apps"}}is-active{{end}}" href="/connect/apps">应用总览</a>
-    <a class="{{if eq .Layout.Active "new"}}is-active{{end}}" href="/connect/apps/new">创建应用</a>
-    {{if .Layout.IsReviewer}}<a class="{{if eq .Layout.Active "review"}}is-active{{end}}" href="/connect/review">应用审核</a>{{end}}
-    {{if .Layout.IsAdmin}}<a class="{{if eq .Layout.Active "admin"}}is-active{{end}}" href="/connect/admin">运营概览</a>{{end}}
-  </nav>
-  <div class="sidebar-rule"></div>
-  <div class="sidebar-kicker">资源</div>
-  <nav class="portal-nav" aria-label="资源导航">
-    <a href="https://github.com/puremixai/xai-connect#接入前提" target="_blank" rel="noreferrer">接入文档</a>
-    <a href="https://xai.run" target="_blank" rel="noreferrer">社区首页</a>
-  </nav>
-  <div class="sidebar-note">
-    <strong>身份状态已同步</strong>
-    权限和账号状态来自 xai.run。<a href="https://xai.run" target="_blank" rel="noreferrer">查看社区账号</a>
-  </div>
-  <div class="sidebar-foot">XAI Connect / Portal</div>
-</aside>
 {{end}}

@@ -10,18 +10,19 @@
 
 <header class="detail-hero">
   <div class="detail-identity">
-    <span class="app-mark app-mark-large">
+    <span class="app-mark">
       {{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.Name}} Logo">{{else}}{{appInitial .Name}}{{end}}
     </span>
     <div>
-      <p class="eyebrow">应用详情</p>
-      <h1>{{.Name}}</h1>
+      <div class="detail-title-row">
+        <h1>{{.Name}}</h1>
+        <span class="status-badge status-{{statusTone .Status}}">{{statusLabel .Status}}</span>
+      </div>
       <p class="lead">{{if .Description}}{{.Description}}{{else}}还没有填写用途说明。{{end}}</p>
     </div>
   </div>
   <div class="detail-hero-actions">
-    <span class="status-badge status-{{statusTone .Status}}">{{statusLabel .Status}}</span>
-    <a class="button button-secondary" href="/connect/apps">返回应用总览</a>
+    {{if canSubmit .Status}}<a class="button button-secondary" href="/connect/apps/{{.ID}}/edit">编辑资料</a>{{end}}
   </div>
 </header>
 
@@ -29,10 +30,10 @@
   <div class="detail-main">
     <section class="panel" aria-labelledby="app-profile-title">
       <div class="panel-head">
-        <div><p class="section-label">基础资料</p><h2 id="app-profile-title">应用信息</h2></div>
+        <h2 id="app-profile-title">应用信息</h2>
         <span class="panel-hint">更新于 {{formatTime .UpdatedAt}}</span>
       </div>
-      <dl class="detail-grid detail-grid-wide">
+      <dl class="detail-grid-wide">
         <div><dt>应用名称</dt><dd>{{.Name}}</dd></div>
         <div><dt>应用编号</dt><dd class="detail-mono">{{.ID}}</dd></div>
         {{if .ClientID}}<div><dt>Client ID</dt><dd class="detail-mono selectable-value">{{.ClientID}}</dd></div>{{end}}
@@ -44,7 +45,7 @@
 
     <section class="panel" aria-labelledby="integration-title">
       <div class="panel-head">
-        <div><p class="section-label">接入指南</p><h2 id="integration-title">接下来怎么做</h2></div>
+        <h2 id="integration-title">接入步骤</h2>
         <a class="text-link" href="https://github.com/puremixai/xai-connect#登录流程authorization-code--pkce" target="_blank" rel="noreferrer">查看完整文档</a>
       </div>
       <ol class="detail-steps">
@@ -57,13 +58,11 @@
 
   <aside class="action-rail" aria-label="应用操作">
     <section class="panel action-panel">
-      <p class="section-label">当前操作</p>
       {{if canSubmit .Status}}
       {{if eq .Status "changes_requested"}}
       <h2>根据反馈修改</h2>
       <p class="action-copy">请先更新应用资料，再重新开始上线。处理备注会显示在上方应用信息中。</p>
       <div class="action-stack">
-        <a class="button button-secondary button-wide" href="/connect/apps/{{.ID}}/edit">编辑资料</a>
         <form method="post" action="/connect/apps/{{.ID}}/submit">
           <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
           <button class="button button-wide" type="submit">重新开始上线</button>
@@ -71,9 +70,8 @@
       </div>
       {{else if eq .Status "rejected"}}
       <h2>重新提交</h2>
-      <p class="action-copy">这个应用可以重新登记资料。更新后再开始上线。</p>
+      <p class="action-copy">这个应用可以重新登记资料，更新后再开始上线。</p>
       <div class="action-stack">
-        <a class="button button-secondary button-wide" href="/connect/apps/{{.ID}}/edit">编辑资料</a>
         <form method="post" action="/connect/apps/{{.ID}}/submit">
           <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
           <button class="button button-wide" type="submit">重新开始上线</button>
@@ -81,9 +79,8 @@
       </div>
       {{else}}
       <h2>准备上线</h2>
-      <p class="action-copy">资料已保存。确认回调地址和域名后即可开始创建 OIDC Client。</p>
+      <p class="action-copy">资料已保存，确认回调地址和域名后即可创建 OIDC Client。</p>
       <div class="action-stack">
-        <a class="button button-secondary button-wide" href="/connect/apps/{{.ID}}/edit">编辑资料</a>
         <form method="post" action="/connect/apps/{{.ID}}/submit">
           <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
           <button class="button button-wide" type="submit">开始上线</button>
@@ -92,11 +89,11 @@
       {{end}}
       {{else if eq .Status "pending_review"}}
       <h2>等待审核</h2>
-      <p class="action-copy">审核员会核对用途、回调地址和域名覆盖范围。处理结果会显示在这里。</p>
+      <p class="action-copy">审核员会核对用途、回调地址和域名覆盖范围，处理结果会显示在这里。</p>
       <span class="progress-note"><span class="progress-dot"></span>申请已进入审核队列</span>
       {{else if eq .Status "provisioning"}}
       <h2>正在上线</h2>
-      <p class="action-copy">平台正在创建 OIDC Client。这个过程完成后，Client ID 会出现在应用信息中。</p>
+      <p class="action-copy">平台正在创建 OIDC Client，完成后 Client ID 会出现在应用信息中。</p>
       <span class="progress-note"><span class="progress-dot is-pulsing"></span>后台处理中</span>
       {{else if eq .Status "approved"}}
       <h2>已可接入</h2>
@@ -110,7 +107,7 @@
         <details class="danger-disclosure">
           <summary>轮换 Secret</summary>
           <div>
-            <p>轮换后旧 Secret 会立即失效。只有在泄露或定期更换时执行。</p>
+            <p>轮换后旧 Secret 会立即失效，只有在泄露或定期更换时执行。</p>
             <form method="post" action="/connect/apps/{{.ID}}/rotate-secret">
               <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
               <input type="hidden" name="confirmed_at" value="{{$.ConfirmedAt}}">
@@ -121,39 +118,40 @@
       </div>
       {{else}}
       <h2>{{statusLabel .Status}}</h2>
-      <p class="action-copy">当前状态暂时没有可执行操作。如有疑问，请联系 Connect 管理员。</p>
+      <p class="action-copy">当前状态暂时没有可执行操作，如有疑问请联系 Connect 管理员。</p>
       {{end}}
     </section>
 
     <section class="panel rail-note">
-      <p class="section-label">安全提示</p>
-      <p>Client Secret 不会通过 OIDC 返回给用户，也不要写入前端代码、日志或 Git 仓库。</p>
+      <p><strong>安全提示</strong><br>Client Secret 不会通过 OIDC 返回给用户，也不要写入前端代码、日志或 Git 仓库。</p>
     </section>
   </aside>
 </div>
 {{end}}
 {{else}}
-<header class="page-header dashboard-header">
+<header class="page-header">
   <div>
-    <p class="eyebrow">开发者工作台 / 应用</p>
-    <h1>把登录接入交给 xai.run</h1>
-    <p class="lead">在一个地方创建应用、查看上线状态和管理 OIDC 凭证。应用默认自动上线，无需等待人工审核。</p>
+    <h1>我的应用</h1>
+    <p class="lead">创建应用、查看上线状态、管理 OIDC 凭证。应用提交后自动上线，无需等待人工审核。</p>
   </div>
-  <div class="button-row header-actions"><a class="button" href="/connect/apps/new">创建应用</a><a class="button button-secondary" href="https://github.com/puremixai/xai-connect#接入前提" target="_blank" rel="noreferrer">阅读接入文档</a></div>
+  <div class="header-actions">
+    <a class="button button-secondary" href="https://github.com/puremixai/xai-connect#接入前提" target="_blank" rel="noreferrer">接入文档</a>
+    <a class="button" href="/connect/apps/new">创建应用</a>
+  </div>
 </header>
 
 <section class="stats-grid stats-grid-compact" aria-label="应用统计">
-  <div class="stat-card"><span>我的应用</span><strong>{{len .Apps}}</strong><small>当前账号拥有</small></div>
-  <div class="stat-card"><span>进行中的应用</span><strong>{{countOpen .Apps}}</strong><small>仍在上线流程</small></div>
-  <div class="stat-card"><span>已上线</span><strong>{{countStatus .Apps "approved"}}</strong><small>可以接受 xai.run 登录</small></div>
-  <div class="stat-card"><span>需要关注</span><strong>{{add (countStatus .Apps "changes_requested") (countStatus .Apps "rejected")}}</strong><small>需要重新提交</small></div>
+  <div class="stat-card panel"><span>我的应用</span><strong>{{len .Apps}}</strong><small>当前账号拥有</small></div>
+  <div class="stat-card panel"><span>进行中</span><strong>{{countOpen .Apps}}</strong><small>仍在上线流程</small></div>
+  <div class="stat-card panel"><span>已上线</span><strong>{{countStatus .Apps "approved"}}</strong><small>可以接受 xai.run 登录</small></div>
+  <div class="stat-card panel"><span>需要关注</span><strong>{{add (countStatus .Apps "changes_requested") (countStatus .Apps "rejected")}}</strong><small>需要重新提交</small></div>
 </section>
 
 <div class="workspace-grid">
   <section class="panel app-table-panel" aria-labelledby="my-apps-title">
-    <div class="panel-head panel-head-toolbar">
-      <div><p class="section-label">接入项目</p><h2 id="my-apps-title">我的应用</h2></div>
-      <div class="toolbar-actions"><span class="panel-hint">{{len .Apps}} 个应用</span><a class="text-link" href="/connect/apps/new">新建应用</a></div>
+    <div class="panel-head">
+      <h2 id="my-apps-title">应用列表</h2>
+      <div class="toolbar-actions"><span class="panel-hint">{{len .Apps}} 个应用</span><a class="text-link" href="/connect/apps/new">新建</a></div>
     </div>
     {{if .Apps}}
     <div class="app-table" role="list">
@@ -163,17 +161,22 @@
           <span class="app-mark">
             {{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.Name}} Logo">{{else}}{{appInitial .Name}}{{end}}
           </span>
-          <span class="app-row-copy"><span class="app-name">{{.Name}}</span><span class="app-description">{{if .Description}}{{truncate .Description 90}}{{else}}未填写用途说明{{end}}</span><span class="app-meta"><span>{{len .CallbackURLs}} 个回调地址</span>{{if .ClientID}}<span class="detail-mono">{{truncate (printf "ID %s" .ClientID) 22}}</span>{{end}}</span></span>
+          <span class="app-row-copy">
+            <span class="app-name">{{.Name}}</span>
+            <span class="app-description">{{if .Description}}{{truncate .Description 90}}{{else}}未填写用途说明{{end}}</span>
+            <span class="app-meta"><span>{{len .CallbackURLs}} 个回调地址</span>{{if .ClientID}}<span class="detail-mono">{{truncate (printf "ID %s" .ClientID) 22}}</span>{{end}}</span>
+          </span>
         </a>
         <span class="app-row-status"><span class="status-badge status-{{statusTone .Status}}">{{statusLabel .Status}}</span><span class="updated">{{formatTime .UpdatedAt}}</span></span>
-        <a class="row-action" href="/connect/apps/{{.ID}}">查看详情<span aria-hidden="true">→</span></a>
+        <a class="row-action" href="/connect/apps/{{.ID}}">详情<span aria-hidden="true">›</span></a>
       </article>
       {{end}}
     </div>
     {{else}}
-    <div class="empty-state empty-state-large">
+    <div class="empty-state">
       <span class="empty-mark" aria-hidden="true">+</span>
-      <div><h3>还没有应用</h3><p>创建第一个应用，平台会自动准备 OIDC Client，其他网站即可使用 xai.run 账号登录。</p></div>
+      <h3>还没有应用</h3>
+      <p>创建第一个应用，平台会自动准备 OIDC Client，其他网站即可使用 xai.run 账号登录。</p>
       <a class="button" href="/connect/apps/new">创建第一个应用</a>
     </div>
     {{end}}
@@ -181,21 +184,23 @@
 
   <aside class="onboarding-rail">
     <section class="panel onboarding-card">
-      <p class="section-label">快速开始</p>
       <h2>三步完成接入</h2>
       <ol class="onboarding-list">
-        <li class="is-active"><span>1</span><div><strong>创建应用</strong><small>填写用途、回调地址和域名。</small></div></li>
+        <li><span>1</span><div><strong>创建应用</strong><small>填写用途、回调地址和域名。</small></div></li>
         <li><span>2</span><div><strong>获取凭证</strong><small>上线后查看 Client ID 和 Secret。</small></div></li>
         <li><span>3</span><div><strong>完成授权</strong><small>使用 Authorization Code + PKCE。</small></div></li>
       </ol>
       <a class="button button-secondary button-wide" href="/connect/apps/new">现在创建应用</a>
     </section>
-    {{if .Layout.IsReviewer}}<section class="panel rail-callout"><p class="section-label">审核员通道</p><h3>有申请需要处理</h3><p>打开审核队列，核对用途和回调范围。</p><a class="text-link" href="/connect/review">前往审核队列 →</a></section>{{end}}
-    {{if .Layout.IsAdmin}}<section class="panel rail-callout"><p class="section-label">管理员通道</p><h3>查看平台状态</h3><p>查看应用生命周期和待处理数量。</p><a class="text-link" href="/connect/admin">打开运营概览 →</a></section>{{end}}
+    {{if .Layout.IsReviewer}}<section class="panel rail-callout"><h3>审核员通道</h3><p>打开审核队列，核对用途和回调范围。</p><a class="text-link" href="/connect/review">前往审核队列 →</a></section>{{end}}
+    {{if .Layout.IsAdmin}}<section class="panel rail-callout"><h3>管理员通道</h3><p>查看应用生命周期和待处理数量。</p><a class="text-link" href="/connect/admin">打开运营概览 →</a></section>{{end}}
   </aside>
 </div>
 {{end}}
 
-<footer class="portal-footer"><span>账号状态由 xai.run 同步</span><a href="https://github.com/puremixai/xai-connect#登录流程authorization-code--pkce" target="_blank" rel="noreferrer">查看接入文档</a></footer>
+<footer class="portal-footer">
+  <span>账号状态由 xai.run 同步</span>
+  <a href="https://github.com/puremixai/xai-connect#登录流程authorization-code--pkce" target="_blank" rel="noreferrer">查看接入文档</a>
+</footer>
 
 {{template "portal-page-end" .}}

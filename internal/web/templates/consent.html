@@ -3,36 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101820">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)">
   <title>授权 · XAI Connect</title>
   <link rel="stylesheet" href="/connect/assets/consent.css">
 </head>
 <body>
 <main class="consent-shell">
   <section class="consent-card" aria-labelledby="consent-title">
-    <aside class="consent-aside">
-      <a class="consent-brand" href="https://xai.run" target="_blank" rel="noreferrer"><span class="brand-mark" aria-hidden="true">XC</span><span><span class="brand-name">XAI Connect</span><span class="brand-subtitle">安全身份授权</span></span></a>
-      <div class="consent-aside-copy"><p class="aside-kicker">xai.run identity</p><h2>你正在授权一个外部应用</h2><p>确认前请核对应用名称和权限范围。你的密码不会提供给应用。</p></div>
-      <div class="consent-aside-foot">Powered by xai.run</div>
-    </aside>
-    <div class="consent-body">
-      <div class="consent-step"><span>1</span><span>确认应用请求</span></div>
-      <p class="eyebrow">授权请求</p>
-      <h1 id="consent-title">{{.Client.Name}} 请求访问你的账号</h1>
-      <p class="lead">确认后，{{.Client.Name}} 将使用你的 xai.run 身份完成登录。应用不会看到你的密码。</p>
-      <section class="permission-panel" aria-labelledby="permission-title">
-        <div class="permission-heading"><h2 id="permission-title">该应用将获得以下权限</h2><span>{{len .Scopes}} 项权限</span></div>
-        <ul class="scope-list">{{range .Scopes}}<li class="scope-item"><code>{{.}}</code></li>{{end}}</ul>
-      </section>
-      <form class="consent-form" method="post" action="{{.Action}}">
-        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <div class="consent-footer">
-          <label class="remember"><input type="checkbox" name="remember" value="1">下次不再询问此应用</label>
-          <div class="consent-actions"><button class="button" name="decision" value="deny" type="submit">拒绝</button><button class="button button-primary" name="decision" value="allow" type="submit">允许访问</button></div>
-        </div>
-      </form>
-    </div>
+    <a class="consent-brand" href="https://xai.run" target="_blank" rel="noreferrer">
+      <span class="brand-mark" aria-hidden="true">XC</span>
+      <span><span class="brand-name">XAI Connect</span><span class="brand-subtitle">xai.run 身份授权</span></span>
+    </a>
+    <h1 id="consent-title"><strong>{{.Client.Name}}</strong> 请求访问你的 xai.run 账号</h1>
+    <p class="lead">确认后，{{.Client.Name}} 将使用你的 xai.run 身份完成登录。应用不会看到你的密码。</p>
+    <section class="permission-panel" aria-labelledby="permission-title">
+      <div class="permission-heading">
+        <h2 id="permission-title">该应用将获得以下权限</h2>
+        <span>{{len .Scopes}} 项</span>
+      </div>
+      <ul class="scope-list">{{range .Scopes}}<li class="scope-item"><code>{{.}}</code></li>{{end}}</ul>
+    </section>
+    <form class="consent-form" method="post" action="{{.Action}}">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label class="remember"><input type="checkbox" name="remember" value="1">下次不再询问此应用</label>
+      <div class="consent-actions">
+        <button class="button button-secondary" name="decision" value="deny" type="submit">拒绝</button>
+        <button class="button" name="decision" value="allow" type="submit">允许访问</button>
+      </div>
+    </form>
   </section>
+  <p class="consent-foot">授权由 <a href="https://xai.run" target="_blank" rel="noreferrer">xai.run</a> 提供身份验证</p>
 </main>
 </body>
 </html>

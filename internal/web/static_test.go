@@ -63,14 +63,15 @@ func TestPortalStylesheetCoversClassesUsedByTemplates(t *testing.T) {
 	}
 	css := string(stylesheet)
 	for _, class := range []string{
-		"portal-topbar", "portal-sidebar", "portal-main", "portal-frame",
-		"workspace-grid", "app-table-row", "onboarding-list",
+		"portal-topbar", "portal-brand", "portal-nav", "portal-main",
+		"page-header", "breadcrumbs", "empty-state",
+		"workspace-grid", "app-table-row", "app-mark", "onboarding-list",
 		"detail-layout", "action-rail", "detail-grid-wide",
 		"form-workspace", "form-actions-sticky", "upload-label",
-		"review-workspace", "review-summary", "danger-disclosure",
+		"review-workspace", "review-summary", "review-card", "danger-disclosure",
 		"admin-workspace", "lifecycle-list", "admin-stat-emphasis",
 		"secret-workspace", "secret-value", "stats-grid-compact",
-		"status-badge", "portal-footer", "breadcrumbs",
+		"status-badge", "portal-footer",
 	} {
 		if !strings.Contains(css, "."+class) {
 			t.Fatalf("portal.css missing rule for .%s", class)
