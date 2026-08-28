@@ -62,3 +62,24 @@ func TestStatusRefresherRejectsSubjectMismatch(t *testing.T) {
 		t.Fatal("CurrentStatus() accepted mismatched subject")
 	}
 }
+
+func TestStatusRefresherPreservesSubjectWhenPluginOmitsIt(t *testing.T) {
+	users := memory.NewUserRepository()
+	_ = users.Upsert(context.Background(), domain.User{
+		Subject: domain.UserID("usr_stable"), DiscourseID: 42, Username: "old", Active: true,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	})
+	refresher := NewStatusRefresher(&fakeProvider{snapshot: UserSnapshot{
+		DiscourseID: 42, Username: "alice", Active: true,
+	}}, users)
+	status, err := refresher.CurrentStatus(context.Background(), "usr_stable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Subject != "usr_stable" {
+		t.Fatalf("status subject = %q", status.Subject)
+	}
+	if _, err := users.GetBySubject(context.Background(), domain.UserID("usr_stable")); err != nil {
+		t.Fatalf("stable subject was lost: %v", err)
+	}
+}

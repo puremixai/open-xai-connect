@@ -55,7 +55,7 @@ func (s *UserInfoService) Claims(ctx context.Context, token string) (map[string]
 		return nil, ErrUnauthorized
 	}
 	app, err := s.apps.GetByClientID(ctx, introspection.ClientID)
-	if err != nil || app.Status != "approved" {
+	if err != nil || app.Status != domain.StatusApproved {
 		return nil, ErrUnauthorized
 	}
 	status, err := s.status.CurrentStatus(ctx, introspection.Subject)

@@ -34,6 +34,7 @@ func NewEventConsumer(verifier *Verifier, users store.UserRepository, eventIDs N
 
 func (c *EventConsumer) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	if c == nil || c.verifier == nil || c.users == nil || c.eventIDs == nil {
+		writeEventError(w, http.StatusServiceUnavailable)
 		return errors.New("identity event consumer is not initialized")
 	}
 	if r.Method != http.MethodPost {
@@ -95,6 +96,12 @@ func (c *EventConsumer) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
+}
+
+func (c *EventConsumer) Handler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = c.ServeHTTP(w, r)
+	})
 }
 
 func writeEventError(w http.ResponseWriter, status int) {

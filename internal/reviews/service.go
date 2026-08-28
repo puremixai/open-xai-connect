@@ -62,6 +62,9 @@ func (s *Service) Approve(ctx context.Context, reviewer string, id domain.Applic
 	if err := s.prepareReview(ctx, reviewer, id, reason); err != nil {
 		return err
 	}
+	if s.outbox == nil {
+		return errors.New("outbox repository is not initialized")
+	}
 	app, err := s.apps.Get(ctx, id)
 	if err != nil {
 		return err
@@ -74,9 +77,6 @@ func (s *Service) Approve(ctx context.Context, reviewer string, id domain.Applic
 		return err
 	}
 	payload, _ := json.Marshal(map[string]string{"application_id": string(id)})
-	if s.outbox == nil {
-		return errors.New("outbox repository is not initialized")
-	}
 	if err := s.outbox.Enqueue(ctx, domain.OutboxEvent{
 		ID: newEventID(), IdempotencyKey: "application:" + string(id) + ":provision",
 		Kind: "application.provision", ApplicationID: id, Payload: payload,

@@ -24,6 +24,7 @@ type Config struct {
 	RedisURL              string
 	HydraPublicURL        string
 	HydraAdminURL         string
+	AssetDir              string
 	EncryptionKey         []byte
 	CookieSecure          bool
 	CookieName            string
@@ -42,8 +43,9 @@ type Config struct {
 func Load() (Config, error) {
 	var cfg Config
 	cfg.ListenAddr = envOr("CONNECT_LISTEN_ADDR", ":8080")
-	cfg.CookieName = envOr("CONNECT_COOKIE_NAME", "connect_session")
+	cfg.CookieName = envOr("CONNECT_COOKIE_NAME", "__Host-connect_session")
 	cfg.Environment = envOr("CONNECT_ENV", "production")
+	cfg.AssetDir = envOr("CONNECT_ASSET_DIR", "/var/lib/connect/assets")
 
 	var err error
 	if cfg.PublicIssuerURL, err = requiredURL("CONNECT_ISSUER_URL", true); err != nil {
@@ -79,6 +81,12 @@ func Load() (Config, error) {
 	}
 	if cfg.CookieName == "" {
 		return Config{}, errors.New("CONNECT_COOKIE_NAME must not be empty")
+	}
+	if strings.ContainsAny(cfg.CookieName, "=;\r\n") {
+		return Config{}, errors.New("CONNECT_COOKIE_NAME contains invalid characters")
+	}
+	if cfg.AssetDir == "" {
+		return Config{}, errors.New("CONNECT_ASSET_DIR must not be empty")
 	}
 
 	cfg.AuthCodeTTL = durationEnv("CONNECT_AUTH_CODE_TTL", 10*time.Minute)

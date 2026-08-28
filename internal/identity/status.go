@@ -37,9 +37,13 @@ func (r *StatusRefresher) CurrentStatus(ctx context.Context, subject string) (St
 	if (snapshot.Subject != "" && snapshot.Subject != subject) || snapshot.DiscourseID != user.DiscourseID {
 		return StatusSnapshot{}, ErrIdentityMismatch
 	}
+	stableSubject := subject
+	if snapshot.Subject != "" {
+		stableSubject = snapshot.Subject
+	}
 	now := r.now().UTC()
 	persisted := domain.User{
-		Subject: domain.UserID(snapshot.Subject), DiscourseID: snapshot.DiscourseID,
+		Subject: domain.UserID(stableSubject), DiscourseID: snapshot.DiscourseID,
 		Username: snapshot.Username, Name: snapshot.Name, AvatarURL: snapshot.AvatarURL,
 		TrustLevel: snapshot.TrustLevel, Active: snapshot.Active,
 		Silenced: snapshot.Silenced, Suspended: snapshot.Suspended,
@@ -50,7 +54,7 @@ func (r *StatusRefresher) CurrentStatus(ctx context.Context, subject string) (St
 		return StatusSnapshot{}, fmt.Errorf("persist current Discourse status: %w", err)
 	}
 	return StatusSnapshot{
-		Subject: snapshot.Subject, TrustLevel: snapshot.TrustLevel,
+		Subject: stableSubject, TrustLevel: snapshot.TrustLevel,
 		Active: snapshot.Active, Silenced: snapshot.Silenced, Suspended: snapshot.Suspended,
 		Reviewer: snapshot.Reviewer, Admin: snapshot.Admin,
 	}, nil

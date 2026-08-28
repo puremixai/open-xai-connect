@@ -10,4 +10,5 @@ FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/connect /connect
 USER nonroot:nonroot
 EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=10 CMD ["/connect", "healthcheck"]
 ENTRYPOINT ["/connect"]

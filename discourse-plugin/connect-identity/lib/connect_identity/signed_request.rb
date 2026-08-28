@@ -32,9 +32,8 @@ module ConnectIdentity
       return head :unauthorized unless secure_compare_hex(expected, signature)
 
       nonce_key = "connect_identity:nonce:#{Digest::SHA256.hexdigest(nonce)}"
-      return head :unauthorized if Rails.cache.exist?(nonce_key)
-
-      Rails.cache.write(nonce_key, true, expires_in: window.seconds)
+      accepted = Rails.cache.write(nonce_key, true, expires_in: window.seconds, unless_exist: true)
+      return head :unauthorized unless accepted
     rescue ArgumentError, TypeError
       head :unauthorized
     end

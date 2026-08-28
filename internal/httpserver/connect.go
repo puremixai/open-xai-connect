@@ -14,9 +14,11 @@ type LoginBeginFunc func(context.Context, string) (string, error)
 type LoginCompleteFunc func(context.Context, *http.Request) (subject string, redirectTo string, err error)
 
 type ConnectDependencies struct {
-	Sessions      *session.HTTPHandler
-	BeginLogin    LoginBeginFunc
-	CompleteLogin LoginCompleteFunc
+	Sessions          *session.HTTPHandler
+	CSRF              *session.CSRF
+	BeginLogin        LoginBeginFunc
+	BeginSessionLogin LoginBeginFunc
+	CompleteLogin     LoginCompleteFunc
 }
 
 func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
@@ -26,11 +28,28 @@ func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
 			return
 		}
 		challenge := strings.TrimSpace(r.URL.Query().Get("login_challenge"))
-		if challenge == "" || deps.BeginLogin == nil {
+		returnTo := strings.TrimSpace(r.URL.Query().Get("return_to"))
+		if challenge == "" && deps.BeginSessionLogin == nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "login_challenge is required"})
 			return
 		}
-		location, err := deps.BeginLogin(r.Context(), challenge)
+		if challenge != "" && deps.BeginLogin == nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "login flow is not configured"})
+			return
+		}
+		if challenge == "" {
+			if err := validateRelativeRedirect(returnTo); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "return_to must be a relative path"})
+				return
+			}
+		}
+		begin := deps.BeginLogin
+		argument := challenge
+		if challenge == "" {
+			begin = deps.BeginSessionLogin
+			argument = returnTo
+		}
+		location, err := begin(r.Context(), argument)
 		if err != nil {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "identity provider unavailable"})
 			return
@@ -52,7 +71,7 @@ func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "login could not be verified"})
 			return
 		}
-		if err := validateRelativeRedirect(redirectTo); err != nil {
+		if err := validateCallbackRedirect(redirectTo); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "invalid callback redirect"})
 			return
 		}
@@ -81,6 +100,13 @@ func RegisterConnectRoutes(mux *http.ServeMux, deps ConnectDependencies) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+		if deps.CSRF != nil {
+			sessionID, sessionErr := deps.Sessions.SessionID(r)
+			if sessionErr != nil || !deps.CSRF.Verify(sessionID, r.FormValue("csrf_token")) {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "csrf validation failed"})
+				return
+			}
+		}
 		if err := deps.Sessions.Logout(w, r); err != nil {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "session store unavailable"})
 			return
@@ -106,4 +132,11 @@ func validateRelativeRedirect(raw string) error {
 		return errors.New("redirect must be a relative path")
 	}
 	return nil
+}
+
+func validateCallbackRedirect(raw string) error {
+	if err := validateRelativeRedirect(raw); err == nil {
+		return nil
+	}
+	return validateAbsoluteHTTPS(raw)
 }

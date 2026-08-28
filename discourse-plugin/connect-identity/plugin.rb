@@ -11,12 +11,18 @@ enabled_site_setting :connect_identity_enabled
 register_asset "stylesheets/connect_identity.scss"
 
 after_initialize do
+  require_relative "lib/connect_identity/configuration"
   require_relative "lib/connect_identity/signed_request"
   require_relative "lib/connect_identity/publisher"
   require_relative "jobs/regular/connect_identity_publish_status"
   require_relative "app/controllers/connect_identity/base_controller"
   require_relative "app/controllers/connect_identity/users_controller"
   require_relative "app/controllers/connect_identity/events_controller"
+
+  unless ConnectIdentity::Configuration.valid?
+    Rails.logger.warn("connect-identity is disabled because its HTTPS base URL or shared secret is not configured")
+    next
+  end
 
   Discourse::Application.routes.append do
     get "/connect/identity/users/:id" => "connect_identity/users#show"

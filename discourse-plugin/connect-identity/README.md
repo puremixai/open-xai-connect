@@ -9,6 +9,8 @@
 3. 设置 reviewer/admin 群组名称，例如 connect-reviewers|staff。
 4. 将同一密钥配置到 Portal 的 DISCOURSE_SHARED_SECRET，通过 HTTPS 部署。
 
+当插件开关打开但 Base URL 不是 HTTPS 或共享密钥为空时，插件会记录告警并保持接口、事件钩子均关闭（fail closed），不会以未签名或半配置状态提供身份数据。
+
 服务接口：
 
 - GET /connect/identity/users/:id
