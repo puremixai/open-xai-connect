@@ -211,6 +211,7 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 		Service: consentService, Sessions: sessions, CSRF: csrf, Renderer: renderer,
 	})
 	register := func(mux *http.ServeMux) {
+		web.RegisterAssetRoutes(mux)
 		httpserver.RegisterOAuthRoutes(mux, httpserver.OAuthDependencies{
 			Discovery: oauth.NewDiscoveryHandler(cfg.PublicIssuerURL), JWKS: jwks,
 			Hydra: hydraPublic, UserInfo: userinfo,
