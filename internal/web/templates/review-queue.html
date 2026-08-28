@@ -1,50 +1,76 @@
 {{template "portal-page-start" .}}
 
-<section class="page-header">
+<nav class="breadcrumbs" aria-label="面包屑">
+  <a href="/connect/apps">应用总览</a>
+  <span aria-hidden="true">/</span>
+  <span>应用审核</span>
+</nav>
+
+<header class="page-header review-page-header">
   <div>
-    <p class="eyebrow">审核中心</p>
-    <h1>应用审核</h1>
-    <p class="lead">核对应用用途、回调地址和域名范围。每个决定都需要留下理由，方便后续追踪。</p>
+    <p class="eyebrow">运营工作台 / 审核</p>
+    <h1>把待处理申请一次清完</h1>
+    <p class="lead">先看用途和授权边界，再在同一张申请卡里留下决定。批准后平台会自动创建 OIDC Client。</p>
   </div>
   <div class="button-row"><a class="button button-secondary" href="/connect/apps">返回应用</a></div>
+</header>
+
+<section class="review-summary" aria-label="审核摘要">
+  <div><span class="summary-label">待审核</span><strong>{{len .Apps}}</strong><small>需要你的决定</small></div>
+  <div><span class="summary-label">检查重点</span><strong>HTTPS</strong><small>回调地址必须精确匹配</small></div>
+  <div><span class="summary-label">提交要求</span><strong>理由</strong><small>每个决定都要留下说明</small></div>
 </section>
 
-<section class="stats-grid" aria-label="审核统计">
-  <div class="stat-card"><span>待审核申请</span><strong>{{len .Apps}}</strong><small>需要你的决定</small></div>
-  <div class="stat-card"><span>审核原则</span><strong>HTTPS</strong><small>回调地址必须精确匹配</small></div>
-  <div class="stat-card"><span>权限边界</span><strong>PKCE</strong><small>平台只开放授权码流程</small></div>
-  <div class="stat-card"><span>操作要求</span><strong>理由</strong><small>批准、修改、驳回都要填写</small></div>
-</section>
+<div class="review-workspace">
+  <section class="review-list" aria-label="待审核应用">
+    {{range .Apps}}
+    <article class="review-card">
+      <header class="review-card-head">
+        <div class="review-title"><span class="review-index" aria-hidden="true">申请</span><div><h2>{{.Name}}</h2><p class="review-owner">所有者：{{.OwnerSubject}}</p></div></div>
+        <span class="status-badge status-progress">待审核</span>
+      </header>
+      <p class="review-description">{{.Description}}</p>
+      <details class="review-details-disclosure" open>
+        <summary>查看授权边界</summary>
+        <dl class="review-details">
+          <div class="detail-block"><dt>回调地址</dt><dd><ul class="endpoint-list">{{range .CallbackURLs}}<li><code>{{.}}</code></li>{{end}}</ul></dd></div>
+          <div class="detail-block"><dt>已验证域名</dt><dd><ul class="endpoint-list endpoint-list-compact">{{range .VerifiedDomains}}<li><code>{{.}}</code></li>{{end}}</ul></dd></div>
+          <div class="detail-block"><dt>提交时间</dt><dd>{{formatTime .UpdatedAt}}</dd></div>
+          <div class="detail-block"><dt>应用编号</dt><dd class="detail-mono">{{.ID}}</dd></div>
+        </dl>
+      </details>
+      <form class="review-form" method="post" action="/connect/review/{{.ID}}">
+        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+        <label class="field" for="reason-{{.ID}}"><span>审核理由 <span class="required-mark">必填</span></span><textarea id="reason-{{.ID}}" name="reason" minlength="2" required placeholder="说明批准、要求修改或驳回的原因"></textarea></label>
+        <div class="review-action-bar">
+          <span class="review-action-hint">决定会立即生效</span>
+          <div class="review-actions">
+            <button class="button-approve" type="submit" name="decision" value="approve">批准并上线</button>
+            <button class="button-changes" type="submit" name="decision" value="changes">要求修改</button>
+            <button class="button-reject" type="submit" name="decision" value="reject">驳回申请</button>
+          </div>
+        </div>
+      </form>
+    </article>
+    {{else}}
+    <div class="panel review-empty"><span class="empty-mark" aria-hidden="true">✓</span><div><h2>当前没有待审核应用</h2><p>新的申请提交后会出现在这里。你可以返回应用总览查看自己的应用。</p><a class="text-link" href="/connect/apps">返回应用总览 →</a></div></div>
+    {{end}}
+  </section>
 
-<section class="review-grid">
-  {{range .Apps}}
-  <article class="review-card">
-    <div class="review-card-head">
-      <div><h2>{{.Name}}</h2><p class="review-owner">所有者：{{.OwnerSubject}}</p></div>
-      <span class="status-badge status-progress">待审核</span>
-    </div>
-    <p class="review-description">{{.Description}}</p>
-    <dl class="review-details">
-      <div class="detail-block"><dt>回调地址</dt><dd>{{range .CallbackURLs}}<div>{{.}}</div>{{end}}</dd></div>
-      <div class="detail-block"><dt>已验证域名</dt><dd>{{range .VerifiedDomains}}<div>{{.}}</div>{{end}}</dd></div>
-      <div class="detail-block"><dt>提交时间</dt><dd>{{formatTime .UpdatedAt}}</dd></div>
-      <div class="detail-block"><dt>应用编号</dt><dd>{{.ID}}</dd></div>
-    </dl>
-    <form class="review-form" method="post" action="/connect/review/{{.ID}}">
-      <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-      <label class="field" for="reason-{{.ID}}"><span>审核理由</span><textarea id="reason-{{.ID}}" name="reason" required placeholder="说明批准、要求修改或驳回的原因"></textarea></label>
-      <div class="review-actions">
-        <button class="button-approve" type="submit" name="decision" value="approve">批准并上线</button>
-        <button class="button-changes" type="submit" name="decision" value="changes">要求修改</button>
-        <button class="button-reject" type="submit" name="decision" value="reject">驳回申请</button>
-      </div>
-    </form>
-  </article>
-  {{else}}
-  <div class="panel review-empty"><h2>当前没有待审核应用</h2><p>新的申请提交后会出现在这里。你可以返回应用总览查看自己的应用。</p><a class="text-link" href="/connect/apps">返回应用总览</a></div>
-  {{end}}
-</section>
+  <aside class="review-rail">
+    <section class="panel review-guide">
+      <p class="section-label">审核顺序</p>
+      <h2>三项快速核对</h2>
+      <ol class="review-checks">
+        <li><span>1</span><div><strong>用途合理</strong><small>说明应能解释为什么需要社区账号。</small></div></li>
+        <li><span>2</span><div><strong>地址可信</strong><small>回调地址使用 HTTPS，且被验证域名覆盖。</small></div></li>
+        <li><span>3</span><div><strong>留下理由</strong><small>申请者会看到你的处理备注。</small></div></li>
+      </ol>
+    </section>
+    <section class="panel rail-note"><p class="section-label">权限来源</p><p>审核权限来自 xai.run 的 connect-reviewers 群组。管理员同时拥有全部审核权限。</p><a class="text-link" href="https://xai.run" target="_blank" rel="noreferrer">管理群组成员 →</a></section>
+  </aside>
+</div>
 
-<footer class="portal-footer"><span>审核权限来自 xai.run 的 connect-reviewers 群组</span><a href="https://xai.run" target="_blank" rel="noreferrer">管理群组成员</a></footer>
+<footer class="portal-footer"><span>批准后由 Portal 自动完成 Client Provisioning</span><a href="https://github.com/puremixai/xai-connect" target="_blank" rel="noreferrer">查看运维文档</a></footer>
 
 {{template "portal-page-end" .}}

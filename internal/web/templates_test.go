@@ -27,6 +27,11 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 			t.Fatalf("navigation missing %q in %q", label, body)
 		}
 	}
+	for _, marker := range []string{"workspace-grid", "app-table", "onboarding-list", "创建应用"} {
+		if !strings.Contains(body, marker) {
+			t.Fatalf("dashboard layout missing %q", marker)
+		}
+	}
 }
 
 func TestRendererShowsProvisioningActionForExistingDraft(t *testing.T) {
@@ -47,6 +52,11 @@ func TestRendererShowsProvisioningActionForExistingDraft(t *testing.T) {
 	if !strings.Contains(body, `action="/connect/apps/app_1/submit"`) || !strings.Contains(body, "开始上线") {
 		t.Fatalf("draft provisioning action missing: %q", body)
 	}
+	for _, marker := range []string{"detail-layout", "action-rail", `href="/connect/apps/app_1/edit"`} {
+		if !strings.Contains(body, marker) {
+			t.Fatalf("draft detail layout missing %q", marker)
+		}
+	}
 }
 
 func TestRendererShowsCredentialActionsForApprovedApplication(t *testing.T) {
@@ -56,10 +66,10 @@ func TestRendererShowsCredentialActionsForApprovedApplication(t *testing.T) {
 	}
 	response := httptest.NewRecorder()
 	err = renderer.Render(response, "app-list", map[string]any{
-		"PageTitle":    "应用详情",
-		"ConfirmedAt":  int64(1787918400),
-		"Apps":         []domain.Application{{ID: "app_1", Name: "Approved", Status: domain.StatusApproved, ClientID: "client_1"}},
-		"Layout":       Layout{Active: "apps", CSRFToken: "csrf"},
+		"PageTitle":   "应用详情",
+		"ConfirmedAt": int64(1787918400),
+		"Apps":        []domain.Application{{ID: "app_1", Name: "Approved", Status: domain.StatusApproved, ClientID: "client_1"}},
+		"Layout":      Layout{Active: "apps", CSRFToken: "csrf"},
 	})
 	if err != nil {
 		t.Fatalf("Render() error = %v", err)

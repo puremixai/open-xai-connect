@@ -99,6 +99,36 @@ func (h *HTTPHandler) newForm(w http.ResponseWriter, r *http.Request) {
 	h.render(w, "app-form", data)
 }
 
+func (h *HTTPHandler) editForm(w http.ResponseWriter, r *http.Request, subject string, id domain.ApplicationID) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if h.service == nil {
+		h.fail(w, http.StatusServiceUnavailable, "服务未配置", "应用服务未配置")
+		return
+	}
+	app, err := h.service.GetMine(r.Context(), subject, id)
+	if err != nil {
+		h.fail(w, http.StatusNotFound, "应用不存在", "无法读取应用")
+		return
+	}
+	if !editableStatus(app.Status) {
+		h.fail(w, http.StatusBadRequest, "应用不可编辑", "当前状态下不能修改应用资料")
+		return
+	}
+	data := h.formData(r, "编辑应用", "/connect/apps/"+string(id)+"/edit")
+	data["PageTitle"] = "编辑应用"
+	data["Name"] = app.Name
+	data["Description"] = app.Description
+	data["Callbacks"] = strings.Join(app.CallbackURLs, "\n")
+	data["Domains"] = strings.Join(app.VerifiedDomains, "\n")
+	data["LogoURL"] = app.LogoURL
+	data["Layout"] = h.layoutFor(r, subject, "new")
+	h.render(w, "app-form", data)
+}
+
 func (h *HTTPHandler) create(w http.ResponseWriter, r *http.Request) {
 	subject, ok := h.authenticated(w, r)
 	if !ok {
@@ -162,6 +192,10 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 	}
 	id := domain.ApplicationID(parts[0])
 	switch {
+	case len(parts) == 2 && parts[1] == "edit" && r.Method == http.MethodGet:
+		h.editForm(w, r, subject, id)
+	case len(parts) == 2 && parts[1] == "edit" && r.Method == http.MethodPost:
+		h.update(w, r, subject, id)
 	case r.Method == http.MethodGet && len(parts) == 1:
 		w.Header().Set("Cache-Control", "no-store")
 		app, err := h.service.GetMine(r.Context(), subject, id)
@@ -192,6 +226,50 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", "GET, POST")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+}
+
+func (h *HTTPHandler) update(w http.ResponseWriter, r *http.Request, subject string, id domain.ApplicationID) {
+	if !h.validCSRF(r) {
+		h.fail(w, http.StatusForbidden, "请求已过期", "CSRF 校验失败")
+		return
+	}
+	if err := r.ParseMultipartForm(600 << 10); err != nil && !errors.Is(err, http.ErrNotMultipart) {
+		h.fail(w, http.StatusBadRequest, "表单无效", "无法解析表单")
+		return
+	}
+	app, err := h.service.GetMine(r.Context(), subject, id)
+	if err != nil {
+		h.fail(w, http.StatusNotFound, "应用不存在", "无法读取应用")
+		return
+	}
+	input := DraftInput{
+		Name:            r.FormValue("name"),
+		Description:     r.FormValue("description"),
+		CallbackURLs:    splitLines(r.FormValue("callbacks")),
+		VerifiedDomains: splitLines(r.FormValue("domains")),
+		LogoURL:         app.LogoURL,
+	}
+	if h.assets != nil {
+		if file, header, fileErr := r.FormFile("logo"); fileErr == nil {
+			defer file.Close()
+			data, readErr := io.ReadAll(io.LimitReader(file, 600<<10))
+			if readErr != nil {
+				h.fail(w, http.StatusBadRequest, "Logo 无效", "无法读取 Logo")
+				return
+			}
+			logoURL, saveErr := h.assets.Save(r.Context(), subject, data, header.Header.Get("Content-Type"))
+			if saveErr != nil {
+				h.fail(w, http.StatusBadRequest, "Logo 无效", saveErr.Error())
+				return
+			}
+			input.LogoURL = logoURL
+		}
+	}
+	if _, err := h.service.UpdateDraft(r.Context(), subject, id, input); err != nil {
+		h.fail(w, http.StatusBadRequest, "应用未保存", err.Error())
+		return
+	}
+	http.Redirect(w, r, "/connect/apps/"+string(id), http.StatusSeeOther)
 }
 
 func (h *HTTPHandler) viewSecret(w http.ResponseWriter, r *http.Request, subject string, id domain.ApplicationID) {
@@ -328,4 +406,13 @@ func parseConfirmation(value string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return time.Unix(seconds, 0).UTC(), nil
+}
+
+func editableStatus(status domain.ApplicationStatus) bool {
+	switch status {
+	case domain.StatusDraft, domain.StatusChangesRequested, domain.StatusRejected:
+		return true
+	default:
+		return false
+	}
 }

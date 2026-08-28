@@ -1,56 +1,87 @@
 {{template "portal-page-start" .}}
 
-<section class="page-header">
+<nav class="breadcrumbs" aria-label="面包屑">
+  <a href="/connect/apps">应用总览</a>
+  <span aria-hidden="true">/</span>
+  <span>创建应用</span>
+</nav>
+
+<header class="page-header form-page-header">
   <div>
     <p class="eyebrow">应用注册</p>
     <h1>{{.Title}}</h1>
-    <p class="lead">提交一个清晰、可验证的接入资料。保存后平台会自动创建 OIDC Client，其他网站即可使用 xai.run 账号登录你的应用。</p>
+    <p class="lead">用几分钟登记应用资料。提交后平台会自动创建 OIDC Client，不需要等待人工审核。</p>
   </div>
-  <a class="button button-secondary" href="/connect/apps">返回应用</a>
-</section>
+</header>
 
-<section class="form-layout">
-  <div class="panel form-panel">
+<div class="form-workspace">
+  <section class="panel form-panel" aria-labelledby="form-title">
+    <div class="form-intro">
+      <span class="form-intro-step">01 — {{if eq .Title "编辑应用"}}资料更新{{else}}资料登记{{end}}</span>
+      <h2 id="form-title">{{if eq .Title "编辑应用"}}更新应用资料{{else}}告诉我们你的应用{{end}}</h2>
+      <p>回调地址和已验证域名会用于限制授权跳转范围，请在提交前逐项核对。</p>
+    </div>
     <form method="post" action="{{.Action}}" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <div class="form-fields">
+      <fieldset class="form-section">
+        <legend><span>1</span>基本信息</legend>
         <div class="field">
-          <label for="name">应用名称</label>
-          <input id="name" name="name" maxlength="120" required value="{{.Name}}" placeholder="例如：团队知识库">
-          <p class="field-help">使用用户能识别的产品名称，最多 120 个字符。</p>
-        </div>
-        <div class="field">
-          <label for="description">用途说明</label>
-          <textarea id="description" name="description" maxlength="2000" required placeholder="说明你的应用提供什么服务，以及为什么需要 xai.run 登录。">{{.Description}}</textarea>
-          <p class="field-help">平台会保留用途说明，方便你和管理员追踪应用用途。</p>
+          <label for="name">应用名称 <span class="required-mark">必填</span></label>
+          <input id="name" name="name" maxlength="120" minlength="2" required autocomplete="organization" value="{{.Name}}" placeholder="例如：团队知识库">
+          <p class="field-help">使用用户能识别的产品名称，2–120 个字符。</p>
         </div>
         <div class="field">
-          <label for="callbacks">回调地址</label>
-          <textarea id="callbacks" name="callbacks" required placeholder="https://app.example.com/auth/xai/callback">{{.Callbacks}}</textarea>
-          <p class="field-help">每行一个。必须是精确的 HTTPS 地址，不能使用通配符、localhost、IP、查询参数或片段。</p>
+          <label for="description">用途说明 <span class="required-mark">必填</span></label>
+          <textarea id="description" name="description" maxlength="2000" minlength="10" required aria-describedby="description-help" placeholder="说明你的应用提供什么服务，以及为什么需要 xai.run 登录。">{{.Description}}</textarea>
+          <p id="description-help" class="field-help">写清楚使用场景，至少 10 个字符；不要放入密钥或用户隐私。</p>
         </div>
         <div class="field">
-          <label for="domains">已验证域名</label>
-          <textarea id="domains" name="domains" required placeholder="app.example.com">{{.Domains}}</textarea>
-          <p class="field-help">每行一个。每个回调地址的主机名必须由这里的域名覆盖。</p>
+          <label for="logo">应用 Logo <span class="optional-mark">可选</span></label>
+          <div class="upload-field">
+            <input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
+            <label for="logo" class="upload-label"><span class="upload-mark" aria-hidden="true">↥</span><span><strong>{{if .LogoURL}}替换当前 Logo{{else}}选择 PNG 或 JPEG{{end}}</strong><small>建议使用清晰的方形图标，最大 512 KiB</small></span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend><span>2</span>授权地址</legend>
+        <div class="field">
+          <label for="callbacks">回调地址 <span class="required-mark">必填</span></label>
+          <textarea id="callbacks" name="callbacks" required spellcheck="false" aria-describedby="callbacks-help" placeholder="https://app.example.com/auth/xai/callback">{{.Callbacks}}</textarea>
+          <p id="callbacks-help" class="field-help">每行一个精确的 HTTPS 地址。不能使用通配符、localhost、IP、查询参数或片段。</p>
         </div>
         <div class="field">
-          <label for="logo">Logo</label>
-          <input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
-          <p class="field-help">可选 PNG/JPEG，建议使用清晰的方形图标，文件不超过 512 KiB。</p>
+          <label for="domains">已验证域名 <span class="required-mark">必填</span></label>
+          <textarea id="domains" name="domains" required spellcheck="false" aria-describedby="domains-help" placeholder="app.example.com">{{.Domains}}</textarea>
+          <p id="domains-help" class="field-help">每行一个域名。每个回调地址的主机名必须由这里的域名覆盖。</p>
         </div>
-        <div class="form-actions">
-          <button class="button" type="submit">创建并上线</button>
-          <a class="button button-secondary" href="/connect/apps">取消</a>
-        </div>
+      </fieldset>
+
+      <div class="form-actions form-actions-sticky">
+        <a class="button button-secondary" href="/connect/apps">取消</a>
+        <button class="button" type="submit">{{if eq .Title "编辑应用"}}保存资料{{else}}创建并上线{{end}} <span aria-hidden="true">→</span></button>
       </div>
     </form>
-  </div>
-  <aside class="info-stack">
-    <div class="info-block"><h3>上线前检查</h3><ul><li>回调地址必须和真实部署地址完全一致。</li><li>已验证域名要覆盖全部回调主机。</li><li>不要在用途说明中放入密钥或用户隐私。</li></ul></div>
-    <div class="info-block"><h3>上线之后</h3><p>应用创建后会自动创建 OIDC Client。Client Secret 只应保存于服务端密钥管理系统，不要提交到 Git。</p></div>
+  </section>
+
+  <aside class="form-rail">
+    <section class="panel checklist-panel">
+      <p class="section-label">提交前检查</p>
+      <h2>确认这些内容</h2>
+      <ul class="checklist">
+        <li><span aria-hidden="true">✓</span><span>回调地址是你实际部署的 HTTPS 地址。</span></li>
+        <li><span aria-hidden="true">✓</span><span>已验证域名覆盖全部回调主机。</span></li>
+        <li><span aria-hidden="true">✓</span><span>用途说明没有密钥、令牌或用户隐私。</span></li>
+      </ul>
+    </section>
+    <section class="panel form-rail-note">
+      <p class="section-label">创建之后</p>
+      <p>应用会进入自动上线流程。上线后在应用详情查看 Client ID，并按需查看 Client Secret。</p>
+      <a class="text-link" href="https://github.com/puremixai/xai-connect#登录流程authorization-code--pkce" target="_blank" rel="noreferrer">查看接入流程 →</a>
+    </section>
   </aside>
-</section>
+</div>
 
 <footer class="portal-footer"><span>需要了解接入协议？</span><a href="https://github.com/puremixai/xai-connect" target="_blank" rel="noreferrer">阅读开发者文档</a></footer>
 

@@ -24,6 +24,7 @@ func NewRenderer() (*Renderer, error) {
 		"statusTone":  statusTone,
 		"countStatus": countStatus,
 		"countOpen":   countOpen,
+		"add":         add,
 		"canSubmit":   canSubmit,
 		"formatTime":  formatTime,
 		"truncate":    truncate,
@@ -89,6 +90,10 @@ func countOpen(apps []domain.Application) int {
 		}
 	}
 	return count
+}
+
+func add(left, right int) int {
+	return left + right
 }
 
 func canSubmit(status domain.ApplicationStatus) bool {
