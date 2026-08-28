@@ -45,6 +45,17 @@ func (h *HTTPHandler) Current(r *http.Request) (Session, error) {
 	return h.store.Touch(r.Context(), cookie.Value, h.now().UTC())
 }
 
+func (h *HTTPHandler) SessionID(r *http.Request) (string, error) {
+	if h == nil || h.cookieName == "" {
+		return "", ErrNotFound
+	}
+	cookie, err := r.Cookie(h.cookieName)
+	if err != nil || cookie.Value == "" {
+		return "", ErrNotFound
+	}
+	return cookie.Value, nil
+}
+
 func (h *HTTPHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	if h == nil || h.store == nil || h.cookieName == "" {
 		return errors.New("session HTTP handler is not initialized")

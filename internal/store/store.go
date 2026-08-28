@@ -18,6 +18,7 @@ type ApplicationRepository interface {
 	Get(context.Context, domain.ApplicationID) (domain.Application, error)
 	GetByClientID(context.Context, string) (domain.Application, error)
 	ListByOwner(context.Context, string) ([]domain.Application, error)
+	ListByStatus(context.Context, domain.ApplicationStatus) ([]domain.Application, error)
 	CountOpenByOwner(context.Context, string) (int, error)
 	Transition(context.Context, domain.ApplicationID, domain.ApplicationStatus, domain.ApplicationStatus, time.Time) (domain.Application, error)
 	Save(context.Context, domain.Application) error
@@ -38,6 +39,7 @@ type ConsentRepository interface {
 type OutboxRepository interface {
 	Enqueue(context.Context, domain.OutboxEvent) error
 	ClaimNext(context.Context, time.Time) (domain.OutboxEvent, error)
+	Retry(context.Context, string, time.Time) error
 	Complete(context.Context, string, time.Time) error
 }
 

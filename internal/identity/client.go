@@ -77,7 +77,7 @@ func (c *Client) FetchUser(ctx context.Context, discourseID int64) (UserSnapshot
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&snapshot); err != nil {
 		return UserSnapshot{}, fmt.Errorf("decode DiscourseConnect user: %w", err)
 	}
-	if snapshot.Subject == "" || snapshot.DiscourseID != discourseID || snapshot.Username == "" {
+	if snapshot.DiscourseID != discourseID || snapshot.Username == "" {
 		return UserSnapshot{}, errors.New("DiscourseConnect returned incomplete user")
 	}
 	return snapshot, nil

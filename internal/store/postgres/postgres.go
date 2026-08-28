@@ -134,6 +134,26 @@ func (s *Store) ListByOwner(ctx context.Context, owner string) ([]domain.Applica
 	return result, nil
 }
 
+func (s *Store) ListByStatus(ctx context.Context, status domain.ApplicationStatus) ([]domain.Application, error) {
+	rows, err := s.Pool.Query(ctx, applicationSelect+` WHERE status=$1 ORDER BY created_at`, status)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	defer rows.Close()
+	result := make([]domain.Application, 0)
+	for rows.Next() {
+		app, scanErr := scanApplication(rows)
+		if scanErr != nil {
+			return nil, mapError(scanErr)
+		}
+		if err := s.loadApplicationLists(ctx, &app); err != nil {
+			return nil, err
+		}
+		result = append(result, app)
+	}
+	return result, mapError(rows.Err())
+}
+
 func (s *Store) CountOpenByOwner(ctx context.Context, owner string) (int, error) {
 	var count int
 	err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM applications
@@ -254,13 +274,14 @@ func (s *Store) loadApplicationLists(ctx context.Context, app *domain.Applicatio
 
 func (s *Store) Upsert(ctx context.Context, user domain.User) error {
 	_, err := s.Pool.Exec(ctx, `INSERT INTO users
-		(subject, discourse_id, username, display_name, avatar_url, trust_level, active, silenced, suspended, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+		(subject, discourse_id, username, display_name, avatar_url, trust_level, active, silenced, suspended, reviewer, admin, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 		ON CONFLICT(subject) DO UPDATE SET discourse_id=EXCLUDED.discourse_id, username=EXCLUDED.username,
 		display_name=EXCLUDED.display_name, avatar_url=EXCLUDED.avatar_url, trust_level=EXCLUDED.trust_level,
-		active=EXCLUDED.active, silenced=EXCLUDED.silenced, suspended=EXCLUDED.suspended, updated_at=EXCLUDED.updated_at`,
+		active=EXCLUDED.active, silenced=EXCLUDED.silenced, suspended=EXCLUDED.suspended,
+		reviewer=EXCLUDED.reviewer, admin=EXCLUDED.admin, updated_at=EXCLUDED.updated_at`,
 		user.Subject, user.DiscourseID, user.Username, user.Name, user.AvatarURL, user.TrustLevel,
-		user.Active, user.Silenced, user.Suspended, user.CreatedAt, user.UpdatedAt)
+		user.Active, user.Silenced, user.Suspended, user.Reviewer, user.Admin, user.CreatedAt, user.UpdatedAt)
 	return mapError(err)
 }
 
@@ -275,9 +296,10 @@ func (s *Store) GetByDiscourseID(ctx context.Context, id int64) (domain.User, er
 func (s *Store) getUser(ctx context.Context, predicate string, arg any) (domain.User, error) {
 	var user domain.User
 	err := s.Pool.QueryRow(ctx, `SELECT subject, discourse_id, username, display_name, avatar_url,
-		trust_level, active, silenced, suspended, created_at, updated_at FROM users WHERE `+predicate, arg).
+		trust_level, active, silenced, suspended, reviewer, admin, created_at, updated_at FROM users WHERE `+predicate, arg).
 		Scan(&user.Subject, &user.DiscourseID, &user.Username, &user.Name, &user.AvatarURL,
-			&user.TrustLevel, &user.Active, &user.Silenced, &user.Suspended, &user.CreatedAt, &user.UpdatedAt)
+			&user.TrustLevel, &user.Active, &user.Silenced, &user.Suspended, &user.Reviewer, &user.Admin,
+			&user.CreatedAt, &user.UpdatedAt)
 	return user, mapError(err)
 }
 
@@ -355,6 +377,17 @@ func (s *OutboxStore) ClaimNext(ctx context.Context, now time.Time) (domain.Outb
 
 func (s *OutboxStore) Complete(ctx context.Context, id string, now time.Time) error {
 	tag, err := s.Pool.Exec(ctx, `UPDATE outbox_events SET completed_at=$1, claimed_at=NULL WHERE id=$2 AND completed_at IS NULL`, now.UTC(), id)
+	if err != nil {
+		return mapError(err)
+	}
+	if tag.RowsAffected() != 1 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
+func (s *OutboxStore) Retry(ctx context.Context, id string, availableAt time.Time) error {
+	tag, err := s.Pool.Exec(ctx, `UPDATE outbox_events SET claimed_at=NULL, available_at=$1 WHERE id=$2 AND completed_at IS NULL`, availableAt.UTC(), id)
 	if err != nil {
 		return mapError(err)
 	}

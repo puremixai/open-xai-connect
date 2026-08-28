@@ -8,6 +8,8 @@ CREATE TABLE users (
     active BOOLEAN NOT NULL DEFAULT TRUE,
     silenced BOOLEAN NOT NULL DEFAULT FALSE,
     suspended BOOLEAN NOT NULL DEFAULT FALSE,
+    reviewer BOOLEAN NOT NULL DEFAULT FALSE,
+    admin BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL
 );
@@ -38,6 +40,15 @@ CREATE TABLE application_domains (
     application_id TEXT NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
     domain TEXT NOT NULL,
     PRIMARY KEY (application_id, domain)
+);
+
+CREATE TABLE verified_domains (
+    domain TEXT PRIMARY KEY,
+    owner_subject TEXT NOT NULL REFERENCES users(subject),
+    verification_method TEXT NOT NULL DEFAULT 'manual',
+    verification_token TEXT NOT NULL DEFAULT '',
+    verified_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE consents (

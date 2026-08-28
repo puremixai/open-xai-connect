@@ -12,6 +12,8 @@ type UserSnapshot struct {
 	Active      bool   `json:"active"`
 	Silenced    bool   `json:"silenced"`
 	Suspended   bool   `json:"suspended"`
+	Reviewer    bool   `json:"connect_reviewer"`
+	Admin       bool   `json:"connect_admin"`
 }
 
 func (u UserSnapshot) CanAuthenticate() bool {
@@ -28,6 +30,8 @@ type StatusSnapshot struct {
 	Active     bool   `json:"active"`
 	Silenced   bool   `json:"silenced"`
 	Suspended  bool   `json:"suspended"`
+	Reviewer   bool   `json:"connect_reviewer"`
+	Admin      bool   `json:"connect_admin"`
 }
 
 func (s StatusSnapshot) CanAuthenticate() bool {

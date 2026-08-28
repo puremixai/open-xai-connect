@@ -73,6 +73,19 @@ func (r *ApplicationRepository) ListByOwner(_ context.Context, owner string) ([]
 	return result, nil
 }
 
+func (r *ApplicationRepository) ListByStatus(_ context.Context, status domain.ApplicationStatus) ([]domain.Application, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	result := make([]domain.Application, 0)
+	for _, app := range r.data {
+		if app.Status == status {
+			result = append(result, app.Clone())
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].CreatedAt.Before(result[j].CreatedAt) })
+	return result, nil
+}
+
 func (r *ApplicationRepository) CountOpenByOwner(_ context.Context, owner string) (int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -248,6 +261,19 @@ func (r *OutboxRepository) Complete(_ context.Context, id string, now time.Time)
 	}
 	completed := now.UTC()
 	event.CompletedAt = &completed
+	r.data[id] = event.Clone()
+	return nil
+}
+
+func (r *OutboxRepository) Retry(_ context.Context, id string, availableAt time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	event, ok := r.data[id]
+	if !ok {
+		return store.ErrNotFound
+	}
+	event.ClaimedAt = nil
+	event.AvailableAt = availableAt.UTC()
 	r.data[id] = event.Clone()
 	return nil
 }

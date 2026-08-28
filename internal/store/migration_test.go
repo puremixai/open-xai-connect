@@ -12,7 +12,7 @@ func TestInitialMigrationContainsRequiredTables(t *testing.T) {
 		t.Fatalf("read initial migration: %v", err)
 	}
 	content := strings.ToLower(string(sql))
-	for _, table := range []string{"users", "applications", "application_callbacks", "consents", "outbox_events", "audit_events"} {
+	for _, table := range []string{"users", "applications", "application_callbacks", "verified_domains", "consents", "outbox_events", "audit_events"} {
 		if !strings.Contains(content, "create table "+table) {
 			t.Fatalf("migration does not create table %s", table)
 		}

@@ -33,6 +33,7 @@ func (c *OryClient) CreateClient(ctx context.Context, registration ClientRegistr
 	}
 	model := *ory.NewOAuth2Client()
 	model.ClientId = optionalString(registration.ClientID)
+	model.ClientSecret = optionalString(registration.ClientSecret)
 	model.ClientName = optionalString(registration.ClientName)
 	model.ClientUri = optionalString(registration.ClientURI)
 	model.PolicyUri = optionalString(registration.PolicyURI)
@@ -57,6 +58,25 @@ func (c *OryClient) CreateClient(ctx context.Context, registration ClientRegistr
 		return ClientCredentials{}, errors.New("Hydra returned incomplete client credentials")
 	}
 	return ClientCredentials{ID: created.GetClientId(), Secret: created.GetClientSecret()}, nil
+}
+
+func (c *OryClient) UpdateClient(ctx context.Context, clientID string, registration ClientRegistration) (ClientCredentials, error) {
+	if c == nil || c.API == nil {
+		return ClientCredentials{}, errors.New("Hydra client is not initialized")
+	}
+	if clientID == "" {
+		return ClientCredentials{}, errors.New("Hydra client ID is required")
+	}
+	registration.ClientID = clientID
+	model := registrationModel(registration)
+	updated, _, err := c.API.OAuth2API.SetOAuth2Client(ctx, clientID).OAuth2Client(model).Execute()
+	if err != nil {
+		return ClientCredentials{}, fmt.Errorf("update Hydra client: %w", err)
+	}
+	if updated == nil || updated.GetClientId() == "" || updated.GetClientSecret() == "" {
+		return ClientCredentials{}, errors.New("Hydra returned incomplete rotated credentials")
+	}
+	return ClientCredentials{ID: updated.GetClientId(), Secret: updated.GetClientSecret()}, nil
 }
 
 func (c *OryClient) DeleteClient(ctx context.Context, clientID string) error {
@@ -191,6 +211,29 @@ func (c *OryClient) IntrospectToken(ctx context.Context, token string) (TokenInt
 		Active: result.Active, Subject: result.GetSub(), ClientID: result.GetClientId(),
 		Scope: result.GetScope(), Ext: result.Ext,
 	}, nil
+}
+
+func registrationModel(registration ClientRegistration) ory.OAuth2Client {
+	model := *ory.NewOAuth2Client()
+	model.ClientId = optionalString(registration.ClientID)
+	model.ClientName = optionalString(registration.ClientName)
+	model.ClientUri = optionalString(registration.ClientURI)
+	model.PolicyUri = optionalString(registration.PolicyURI)
+	model.LogoUri = optionalString(registration.LogoURI)
+	model.RedirectUris = append([]string(nil), registration.RedirectURIs...)
+	model.GrantTypes = append([]string(nil), registration.GrantTypes...)
+	model.ResponseTypes = append([]string(nil), registration.ResponseTypes...)
+	model.Scope = optionalString(registration.Scope)
+	model.Owner = optionalString(registration.Owner)
+	if registration.TokenEndpointAuthMethod != "" {
+		model.TokenEndpointAuthMethod = optionalString(registration.TokenEndpointAuthMethod)
+	}
+	model.AccessTokenStrategy = optionalString(registration.AccessTokenStrategy)
+	model.AuthorizationCodeGrantIdTokenLifespan = optionalString(registration.IDTokenLifespan)
+	model.AuthorizationCodeGrantAccessTokenLifespan = optionalString(registration.AccessTokenLifespan)
+	model.AuthorizationCodeGrantRefreshTokenLifespan = optionalString(registration.RefreshTokenLifespan)
+	model.ClientSecret = optionalString(registration.ClientSecret)
+	return model
 }
 
 func mapClient(client ory.OAuth2Client) ClientInfo {

@@ -37,3 +37,16 @@ func TestFakeClientReturnsConfiguredIntrospection(t *testing.T) {
 		t.Fatalf("token = %#v", token)
 	}
 }
+
+func TestFakeClientUpdatesClientSecretWithoutChangingClientID(t *testing.T) {
+	fake := NewFake()
+	credentials, err := fake.UpdateClient(context.Background(), "client_1", ClientRegistration{
+		ClientID: "client_1", ClientName: "Example",
+	})
+	if err != nil {
+		t.Fatalf("UpdateClient() error = %v", err)
+	}
+	if credentials.ID != "client_1" || credentials.Secret == "" {
+		t.Fatalf("credentials = %#v", credentials)
+	}
+}

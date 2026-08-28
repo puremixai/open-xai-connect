@@ -4,6 +4,7 @@ import "context"
 
 type Client interface {
 	CreateClient(context.Context, ClientRegistration) (ClientCredentials, error)
+	UpdateClient(context.Context, string, ClientRegistration) (ClientCredentials, error)
 	DeleteClient(context.Context, string) error
 	GetLoginRequest(context.Context, string) (LoginRequest, error)
 	AcceptLogin(context.Context, string, LoginAcceptance) (string, error)
@@ -18,6 +19,7 @@ type Client interface {
 type ClientRegistration struct {
 	ClientID                string
 	ClientName              string
+	ClientSecret            string
 	ClientURI               string
 	PolicyURI               string
 	LogoURI                 string

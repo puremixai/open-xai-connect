@@ -10,6 +10,7 @@ type Fake struct {
 	mu sync.Mutex
 
 	Registrations    []ClientRegistration
+	Updates          []ClientRegistration
 	Deleted          []string
 	Login            LoginRequest
 	Consent          ConsentRequest
@@ -37,6 +38,17 @@ func (f *Fake) CreateClient(_ context.Context, registration ClientRegistration) 
 		id = "client_" + string(rune('0'+len(f.Registrations)))
 	}
 	return ClientCredentials{ID: id, Secret: "secret_" + id}, nil
+}
+
+func (f *Fake) UpdateClient(_ context.Context, clientID string, registration ClientRegistration) (ClientCredentials, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.Err != nil {
+		return ClientCredentials{}, f.Err
+	}
+	registration.ClientID = clientID
+	f.Updates = append(f.Updates, registration)
+	return ClientCredentials{ID: clientID, Secret: "rotated_" + clientID}, nil
 }
 
 func (f *Fake) DeleteClient(_ context.Context, clientID string) error {

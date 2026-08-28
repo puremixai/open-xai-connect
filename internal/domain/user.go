@@ -12,6 +12,8 @@ type User struct {
 	Active      bool
 	Silenced    bool
 	Suspended   bool
+	Reviewer    bool
+	Admin       bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
