@@ -206,6 +206,8 @@ type OutboxRepository struct {
 	byKey map[string]string
 }
 
+const outboxClaimTimeout = 10 * time.Minute
+
 func NewOutboxRepository() *OutboxRepository {
 	return &OutboxRepository{data: make(map[string]domain.OutboxEvent), byKey: make(map[string]string)}
 }
@@ -236,8 +238,11 @@ func (r *OutboxRepository) ClaimNext(_ context.Context, now time.Time) (domain.O
 	defer r.mu.Unlock()
 	var selectedID string
 	for id, event := range r.data {
-		if event.CompletedAt == nil && event.ClaimedAt == nil && !event.AvailableAt.After(now) {
+		staleClaim := event.ClaimedAt != nil && now.Sub(event.ClaimedAt.UTC()) >= outboxClaimTimeout
+		if event.CompletedAt == nil && (event.ClaimedAt == nil || staleClaim) && !event.AvailableAt.After(now) {
+			event.ClaimedAt = nil
 			selectedID = id
+			r.data[id] = event.Clone()
 			break
 		}
 	}

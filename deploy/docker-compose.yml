@@ -37,7 +37,7 @@ services:
         condition: service_healthy
     command: migrate sql -e --yes
     environment:
-      DSN: postgres://${HYDRA_DB_USER:-connect}:${HYDRA_DB_PASSWORD:?set HYDRA_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
+      DSN: postgres://${POSTGRES_USER:-connect}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
 
   hydra:
     image: oryd/hydra:v26.3.10
@@ -47,7 +47,7 @@ services:
         condition: service_completed_successfully
     command: serve all --dev=false
     environment:
-      DSN: postgres://${HYDRA_DB_USER:-connect}:${HYDRA_DB_PASSWORD:?set HYDRA_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
+      DSN: postgres://${POSTGRES_USER:-connect}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
       URLS_SELF_ISSUER: https://${CONNECT_HOST:?set CONNECT_HOST}/
       URLS_LOGIN: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/login
       URLS_CONSENT: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/consent

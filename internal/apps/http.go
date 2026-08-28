@@ -66,6 +66,10 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if h.service == nil {
+		h.fail(w, http.StatusServiceUnavailable, "服务未配置", "应用服务未配置")
+		return
+	}
 	apps, err := h.service.ListMine(r.Context(), subject)
 	if err != nil {
 		h.fail(w, http.StatusInternalServerError, "无法读取应用", err.Error())
@@ -90,6 +94,10 @@ func (h *HTTPHandler) newForm(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandler) create(w http.ResponseWriter, r *http.Request) {
 	subject, ok := h.authenticated(w, r)
 	if !ok {
+		return
+	}
+	if h.service == nil {
+		h.fail(w, http.StatusServiceUnavailable, "服务未配置", "应用服务未配置")
 		return
 	}
 	if !h.validCSRF(r) {
@@ -138,6 +146,10 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 	}
 	subject, ok := h.authenticated(w, r)
 	if !ok {
+		return
+	}
+	if h.service == nil {
+		h.fail(w, http.StatusServiceUnavailable, "服务未配置", "应用服务未配置")
 		return
 	}
 	id := domain.ApplicationID(parts[0])
@@ -226,8 +238,11 @@ func (h *HTTPHandler) validCSRF(r *http.Request) bool {
 }
 
 func (h *HTTPHandler) formData(r *http.Request, title, action string) map[string]any {
-	sid, _ := h.sessions.SessionID(r)
-	token, _ := h.csrf.Token(sid)
+	token := ""
+	if h.sessions != nil && h.csrf != nil {
+		sid, _ := h.sessions.SessionID(r)
+		token, _ = h.csrf.Token(sid)
+	}
 	return map[string]any{"Title": title, "Action": action, "CSRFToken": token}
 }
 

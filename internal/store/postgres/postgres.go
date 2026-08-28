@@ -18,6 +18,8 @@ type Store struct {
 	Pool *pgxpool.Pool
 }
 
+const outboxClaimTimeout = 10 * time.Minute
+
 func New(ctx context.Context, dsn string) (*Store, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
@@ -341,7 +343,8 @@ func NewOutboxStore(base *Store) *OutboxStore {
 func (s *OutboxStore) Enqueue(ctx context.Context, event domain.OutboxEvent) error {
 	_, err := s.Pool.Exec(ctx, `INSERT INTO outbox_events
 		(id, idempotency_key, kind, application_id, payload, attempts, available_at, claimed_at, completed_at, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		ON CONFLICT (idempotency_key) DO NOTHING`,
 		event.ID, event.IdempotencyKey, event.Kind, event.ApplicationID, event.Payload,
 		event.Attempts, event.AvailableAt, event.ClaimedAt, event.CompletedAt, event.CreatedAt)
 	return mapError(err)
@@ -356,8 +359,8 @@ func (s *OutboxStore) ClaimNext(ctx context.Context, now time.Time) (domain.Outb
 	var event domain.OutboxEvent
 	err = tx.QueryRow(ctx, `SELECT id, idempotency_key, kind, application_id, payload, attempts,
 		available_at, claimed_at, completed_at, created_at FROM outbox_events
-		WHERE completed_at IS NULL AND claimed_at IS NULL AND available_at <= $1
-		ORDER BY available_at, created_at LIMIT 1 FOR UPDATE SKIP LOCKED`, now).
+		WHERE completed_at IS NULL AND (claimed_at IS NULL OR claimed_at < $1) AND available_at <= $2
+		ORDER BY available_at, created_at LIMIT 1 FOR UPDATE SKIP LOCKED`, now.Add(-outboxClaimTimeout), now).
 		Scan(&event.ID, &event.IdempotencyKey, &event.Kind, &event.ApplicationID, &event.Payload,
 			&event.Attempts, &event.AvailableAt, &event.ClaimedAt, &event.CompletedAt, &event.CreatedAt)
 	if err != nil {

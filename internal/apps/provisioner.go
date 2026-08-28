@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"connect.xai.run/internal/domain"
@@ -24,13 +25,15 @@ type ProvisionerDependencies struct {
 }
 
 type Provisioner struct {
-	apps       store.ApplicationRepository
-	outbox     store.OutboxRepository
-	audit      store.AuditRepository
-	hydra      hydra.Client
-	box        *secrets.Box
-	now        func() time.Time
-	retryDelay time.Duration
+	mu          sync.Mutex
+	apps        store.ApplicationRepository
+	outbox      store.OutboxRepository
+	audit       store.AuditRepository
+	hydra       hydra.Client
+	box         *secrets.Box
+	now         func() time.Time
+	retryDelay  time.Duration
+	credentials map[domain.ApplicationID]hydra.ClientCredentials
 }
 
 func NewProvisioner(deps ProvisionerDependencies) *Provisioner {
@@ -45,6 +48,7 @@ func NewProvisioner(deps ProvisionerDependencies) *Provisioner {
 	return &Provisioner{
 		apps: deps.Apps, outbox: deps.Outbox, audit: deps.Audit,
 		hydra: deps.Hydra, box: deps.Box, now: now, retryDelay: retryDelay,
+		credentials: make(map[domain.ApplicationID]hydra.ClientCredentials),
 	}
 }
 
@@ -52,6 +56,8 @@ func (p *Provisioner) RunOnce(ctx context.Context) (bool, error) {
 	if p == nil || p.apps == nil || p.outbox == nil || p.hydra == nil || p.box == nil {
 		return false, errors.New("provisioner dependencies are not initialized")
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	now := p.now().UTC()
 	event, err := p.outbox.ClaimNext(ctx, now)
 	if errors.Is(err, store.ErrNotFound) {
@@ -70,20 +76,25 @@ func (p *Provisioner) RunOnce(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	if app.Status != domain.StatusProvisioning {
+		delete(p.credentials, app.ID)
 		_ = p.outbox.Complete(ctx, event.ID, now)
 		return true, nil
 	}
-	credentials, err := p.hydra.CreateClient(ctx, hydra.ClientRegistration{
-		ClientName: app.Name, LogoURI: app.LogoURL, RedirectURIs: append([]string(nil), app.CallbackURLs...),
-		GrantTypes:    []string{"authorization_code", "refresh_token"},
-		ResponseTypes: []string{"code"}, Scope: "openid profile community offline_access",
-		TokenEndpointAuthMethod: "client_secret_basic", Owner: app.OwnerSubject,
-		AccessTokenStrategy: "opaque", IDTokenLifespan: "1h",
-		AccessTokenLifespan: "24h", RefreshTokenLifespan: "4320h",
-	})
-	if err != nil {
-		_ = p.retry(ctx, event.ID, now)
-		return false, err
+	credentials, ok := p.credentials[app.ID]
+	if !ok {
+		credentials, err = p.hydra.CreateClient(ctx, hydra.ClientRegistration{
+			ClientName: app.Name, LogoURI: app.LogoURL, RedirectURIs: append([]string(nil), app.CallbackURLs...),
+			GrantTypes:    []string{"authorization_code", "refresh_token"},
+			ResponseTypes: []string{"code"}, Scope: "openid profile community offline_access",
+			TokenEndpointAuthMethod: "client_secret_basic", Owner: app.OwnerSubject,
+			AccessTokenStrategy: "opaque", IDTokenLifespan: "1h",
+			AccessTokenLifespan: "24h", RefreshTokenLifespan: "4320h",
+		})
+		if err != nil {
+			_ = p.retry(ctx, event.ID, now)
+			return false, err
+		}
+		p.credentials[app.ID] = credentials
 	}
 	if credentials.ID == "" || credentials.Secret == "" {
 		_ = p.retry(ctx, event.ID, now)
@@ -102,6 +113,7 @@ func (p *Provisioner) RunOnce(ctx context.Context) (bool, error) {
 		_ = p.retry(ctx, event.ID, now)
 		return false, err
 	}
+	delete(p.credentials, app.ID)
 	if err := p.outbox.Complete(ctx, event.ID, now); err != nil {
 		return false, err
 	}
