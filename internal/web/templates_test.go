@@ -32,6 +32,9 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 			t.Fatalf("dashboard layout missing %q", marker)
 		}
 	}
+	if !strings.Contains(body, AssetsPath+"/portal.") {
+		t.Fatalf("stylesheet link is not content-addressed: %q", body)
+	}
 }
 
 func TestRendererShowsProvisioningActionForExistingDraft(t *testing.T) {

@@ -14,8 +14,14 @@ import (
 var staticFS embed.FS
 
 // asset describes one embedded stylesheet served under /connect/assets/.
+// Stylesheets are content-addressed: AssetURL returns a fingerprinted path
+// (for example /connect/assets/portal.1b2f90ca.css) that changes whenever the
+// file content changes, so those URLs can be cached indefinitely. The plain
+// name keeps working as a short-lived compatibility alias for HTML that is
+// still in flight from a deploy.
 type asset struct {
 	name        string
+	version     string
 	contentType string
 	etag        string
 	body        []byte
@@ -36,12 +42,17 @@ var assetIndex = func() map[string]asset {
 			continue
 		}
 		sum := sha256.Sum256(body)
-		index["/"+entry.Name()] = asset{
+		version := hex.EncodeToString(sum[:4])
+		item := asset{
 			name:        entry.Name(),
+			version:     version,
 			contentType: "text/css; charset=utf-8",
 			etag:        `"` + hex.EncodeToString(sum[:16]) + `"`,
 			body:        body,
 		}
+		base := strings.TrimSuffix(entry.Name(), ".css")
+		index["/"+entry.Name()] = item
+		index["/"+base+"."+version+".css"] = item
 	}
 	return index
 }()
@@ -50,10 +61,23 @@ var assetIndex = func() map[string]asset {
 // served, e.g. AssetsPath + "/portal.css" inside template link tags.
 const AssetsPath = "/connect/assets"
 
-// RegisterAssetRoutes serves the embedded portal stylesheets with strong
-// ETags. The files are compiled into the binary, so a content change always
-// ships with a new build and a new ETag; browsers may cache aggressively
-// between deploys.
+// AssetURL returns the cache-busting URL of an embedded stylesheet, e.g.
+// AssetURL("portal.css") resolves to /connect/assets/portal.<version>.css.
+// Unknown names fall back to the legacy path so the failure mode is a plain
+// 404 instead of a broken template.
+func AssetURL(name string) string {
+	item, ok := assetIndex["/"+path.Base(name)]
+	if !ok {
+		return AssetsPath + "/" + path.Base(name)
+	}
+	base := strings.TrimSuffix(item.name, ".css")
+	return AssetsPath + "/" + base + "." + item.version + ".css"
+}
+
+// RegisterAssetRoutes serves the embedded portal stylesheets. Fingerprinted
+// URLs are immutable (the content hash is part of the path), so they carry a
+// one-year lifetime; the legacy alias stays short-lived so stale references
+// heal quickly instead of pinning an old stylesheet for a week.
 func RegisterAssetRoutes(mux *http.ServeMux) {
 	mux.HandleFunc(AssetsPath+"/", serveAsset)
 }
@@ -64,13 +88,18 @@ func serveAsset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	item, ok := assetIndex[strings.TrimPrefix(r.URL.Path, AssetsPath)]
+	requested := strings.TrimPrefix(r.URL.Path, AssetsPath)
+	item, ok := assetIndex[requested]
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
+	cacheControl := "public, max-age=31536000, immutable"
+	if requested == "/"+item.name {
+		cacheControl = "public, max-age=300, must-revalidate"
+	}
 	w.Header().Set("Content-Type", item.contentType)
-	w.Header().Set("Cache-Control", "public, max-age=604800")
+	w.Header().Set("Cache-Control", cacheControl)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("ETag", item.etag)
 	if r.Header.Get("If-None-Match") == item.etag {

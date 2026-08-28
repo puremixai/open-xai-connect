@@ -29,6 +29,7 @@ func NewRenderer() (*Renderer, error) {
 		"formatTime":  formatTime,
 		"truncate":    truncate,
 		"appInitial":  appInitial,
+		"assetURL":    AssetURL,
 	}).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		return nil, err

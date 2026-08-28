@@ -56,6 +56,43 @@ func TestAssetHandlerRejectsUnknownFilesAndMethods(t *testing.T) {
 	}
 }
 
+func TestFingerprintedStylesheetURLsAreImmutable(t *testing.T) {
+	mux := http.NewServeMux()
+	RegisterAssetRoutes(mux)
+
+	url := AssetURL("portal.css")
+	if url == AssetsPath+"/portal.css" || !strings.HasPrefix(url, AssetsPath+"/portal.") {
+		t.Fatalf("AssetURL() = %q, want content-addressed path", url)
+	}
+
+	fingerprinted := httptest.NewRecorder()
+	mux.ServeHTTP(fingerprinted, httptest.NewRequest(http.MethodGet, url, nil))
+	if fingerprinted.Code != http.StatusOK {
+		t.Fatalf("fingerprinted status = %d", fingerprinted.Code)
+	}
+	if cache := fingerprinted.Header().Get("Cache-Control"); !strings.Contains(cache, "immutable") {
+		t.Fatalf("fingerprinted Cache-Control = %q, want immutable", cache)
+	}
+
+	legacy := httptest.NewRecorder()
+	mux.ServeHTTP(legacy, httptest.NewRequest(http.MethodGet, AssetsPath+"/portal.css", nil))
+	if legacy.Code != http.StatusOK {
+		t.Fatalf("legacy alias status = %d", legacy.Code)
+	}
+	if legacy.Body.String() != fingerprinted.Body.String() {
+		t.Fatal("legacy alias serves different content than the fingerprinted URL")
+	}
+	if cache := legacy.Header().Get("Cache-Control"); strings.Contains(cache, "immutable") {
+		t.Fatalf("legacy alias Cache-Control = %q, want short lifetime", cache)
+	}
+
+	unknown := httptest.NewRecorder()
+	mux.ServeHTTP(unknown, httptest.NewRequest(http.MethodGet, AssetsPath+"/portal.deadbeef.css", nil))
+	if unknown.Code != http.StatusNotFound {
+		t.Fatalf("unknown fingerprint status = %d, want 404", unknown.Code)
+	}
+}
+
 func TestPortalStylesheetCoversClassesUsedByTemplates(t *testing.T) {
 	stylesheet, err := staticFS.ReadFile("static/portal.css")
 	if err != nil {
