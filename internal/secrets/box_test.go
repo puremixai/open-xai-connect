@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"bytes"
+	"encoding/base64"
 	"testing"
 )
 
@@ -42,7 +43,12 @@ func TestBoxRejectsInvalidKeyAndTampering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Encrypt() error = %v", err)
 	}
-	tampered := ciphertext[:len(ciphertext)-1] + "x"
+	raw, err := base64.RawURLEncoding.DecodeString(ciphertext)
+	if err != nil {
+		t.Fatalf("DecodeString() error = %v", err)
+	}
+	raw[len(raw)-1] ^= 1
+	tampered := base64.RawURLEncoding.EncodeToString(raw)
 	if _, err := box.Decrypt(tampered, "app_1:v1"); err == nil {
 		t.Fatal("Decrypt() accepted tampered ciphertext")
 	}
