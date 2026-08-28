@@ -100,6 +100,17 @@ func (s *Store) Get(ctx context.Context, id domain.ApplicationID) (domain.Applic
 	return app, nil
 }
 
+func (s *Store) GetByClientID(ctx context.Context, clientID string) (domain.Application, error) {
+	app, err := scanApplication(s.Pool.QueryRow(ctx, applicationSelect+` WHERE client_id=$1`, clientID))
+	if err != nil {
+		return domain.Application{}, mapError(err)
+	}
+	if err := s.loadApplicationLists(ctx, &app); err != nil {
+		return domain.Application{}, err
+	}
+	return app, nil
+}
+
 func (s *Store) ListByOwner(ctx context.Context, owner string) ([]domain.Application, error) {
 	rows, err := s.Pool.Query(ctx, applicationSelect+` WHERE owner_subject=$1 ORDER BY created_at`, owner)
 	if err != nil {

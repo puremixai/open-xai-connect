@@ -16,6 +16,7 @@ var (
 type ApplicationRepository interface {
 	Create(context.Context, domain.Application) error
 	Get(context.Context, domain.ApplicationID) (domain.Application, error)
+	GetByClientID(context.Context, string) (domain.Application, error)
 	ListByOwner(context.Context, string) ([]domain.Application, error)
 	CountOpenByOwner(context.Context, string) (int, error)
 	Transition(context.Context, domain.ApplicationID, domain.ApplicationStatus, domain.ApplicationStatus, time.Time) (domain.Application, error)

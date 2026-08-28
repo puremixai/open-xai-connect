@@ -49,6 +49,17 @@ func (r *ApplicationRepository) Get(_ context.Context, id domain.ApplicationID) 
 	return app.Clone(), nil
 }
 
+func (r *ApplicationRepository) GetByClientID(_ context.Context, clientID string) (domain.Application, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, app := range r.data {
+		if string(app.ClientID) == clientID {
+			return app.Clone(), nil
+		}
+	}
+	return domain.Application{}, store.ErrNotFound
+}
+
 func (r *ApplicationRepository) ListByOwner(_ context.Context, owner string) ([]domain.Application, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
