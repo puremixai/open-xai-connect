@@ -55,6 +55,7 @@ func (r *StatusRefresher) CurrentStatus(ctx context.Context, subject string) (St
 	}
 	return StatusSnapshot{
 		Subject: stableSubject, TrustLevel: snapshot.TrustLevel,
+		Username: snapshot.Username, Name: snapshot.Name, AvatarURL: snapshot.AvatarURL,
 		Active: snapshot.Active, Silenced: snapshot.Silenced, Suspended: snapshot.Suspended,
 		Reviewer: snapshot.Reviewer, Admin: snapshot.Admin,
 	}, nil

@@ -1,12 +1,57 @@
-<!doctype html>
-<html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}} · XAI Connect</title><style>body{font:16px system-ui,sans-serif;max-width:760px;margin:3rem auto;padding:0 1rem;color:#17202a}label{display:block;margin:1rem 0 .35rem;font-weight:600}input,textarea{box-sizing:border-box;width:100%;padding:.7rem;border:1px solid #b8c2cc;border-radius:.5rem}button{margin-top:1.25rem;padding:.7rem 1rem;border:0;border-radius:.5rem;background:#1769e0;color:#fff;font-weight:600}</style></head>
-<body><main><p><a href="/connect/apps">XAI Connect</a></p><h1>{{.Title}}</h1>
-<form method="post" action="{{.Action}}" enctype="multipart/form-data">
-<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-<label for="name">应用名称</label><input id="name" name="name" maxlength="120" required value="{{.Name}}">
-<label for="description">用途说明</label><textarea id="description" name="description" maxlength="2000" required>{{.Description}}</textarea>
-<label for="callbacks">回调地址（每行一个，必须 HTTPS）</label><textarea id="callbacks" name="callbacks" required>{{.Callbacks}}</textarea>
-<label for="domains">已验证域名（每行一个）</label><textarea id="domains" name="domains" required>{{.Domains}}</textarea>
-<label for="logo">Logo（PNG/JPEG，32–1024 像素，≤512 KiB）</label><input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
-<button type="submit">保存草稿</button></form></main></body></html>
+{{template "portal-page-start" .}}
+
+<section class="page-header">
+  <div>
+    <p class="eyebrow">应用注册</p>
+    <h1>{{.Title}}</h1>
+    <p class="lead">提交一个清晰、可验证的接入申请。审核通过后，其他网站就能使用 xai.run 账号登录你的应用。</p>
+  </div>
+  <a class="button button-secondary" href="/connect/apps">返回应用</a>
+</section>
+
+<section class="form-layout">
+  <div class="panel form-panel">
+    <form method="post" action="{{.Action}}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <div class="form-fields">
+        <div class="field">
+          <label for="name">应用名称</label>
+          <input id="name" name="name" maxlength="120" required value="{{.Name}}" placeholder="例如：团队知识库">
+          <p class="field-help">使用用户能识别的产品名称，最多 120 个字符。</p>
+        </div>
+        <div class="field">
+          <label for="description">用途说明</label>
+          <textarea id="description" name="description" maxlength="2000" required placeholder="说明你的应用提供什么服务，以及为什么需要 xai.run 登录。">{{.Description}}</textarea>
+          <p class="field-help">审核员会根据用途说明确认权限申请是否合理。</p>
+        </div>
+        <div class="field">
+          <label for="callbacks">回调地址</label>
+          <textarea id="callbacks" name="callbacks" required placeholder="https://app.example.com/auth/xai/callback">{{.Callbacks}}</textarea>
+          <p class="field-help">每行一个。必须是精确的 HTTPS 地址，不能使用通配符、localhost、IP、查询参数或片段。</p>
+        </div>
+        <div class="field">
+          <label for="domains">已验证域名</label>
+          <textarea id="domains" name="domains" required placeholder="app.example.com">{{.Domains}}</textarea>
+          <p class="field-help">每行一个。每个回调地址的主机名必须由这里的域名覆盖。</p>
+        </div>
+        <div class="field">
+          <label for="logo">Logo</label>
+          <input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
+          <p class="field-help">可选 PNG/JPEG，建议使用清晰的方形图标，文件不超过 512 KiB。</p>
+        </div>
+        <div class="form-actions">
+          <button class="button" type="submit">保存草稿</button>
+          <a class="button button-secondary" href="/connect/apps">取消</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  <aside class="info-stack">
+    <div class="info-block"><h3>审核前检查</h3><ul><li>回调地址必须和真实部署地址完全一致。</li><li>已验证域名要覆盖全部回调主机。</li><li>不要在用途说明中放入密钥或用户隐私。</li></ul></div>
+    <div class="info-block"><h3>上线之后</h3><p>应用批准后会自动创建 OIDC Client。Client Secret 只应保存于服务端密钥管理系统，不要提交到 Git。</p></div>
+  </aside>
+</section>
+
+<footer class="portal-footer"><span>需要了解接入协议？</span><a href="https://github.com/puremixai/xai-connect" target="_blank" rel="noreferrer">阅读开发者文档</a></footer>
+
+{{template "portal-page-end" .}}

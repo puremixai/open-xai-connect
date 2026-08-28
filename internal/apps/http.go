@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"connect.xai.run/internal/domain"
+	"connect.xai.run/internal/identity"
 	"connect.xai.run/internal/session"
 	"connect.xai.run/internal/web"
 )
@@ -21,6 +22,7 @@ type AssetStore interface {
 
 type HTTPDependencies struct {
 	Service  *Service
+	Status   identity.StatusLookup
 	Sessions *session.HTTPHandler
 	CSRF     *session.CSRF
 	Renderer *web.Renderer
@@ -29,6 +31,7 @@ type HTTPDependencies struct {
 
 type HTTPHandler struct {
 	service  *Service
+	status   identity.StatusLookup
 	sessions *session.HTTPHandler
 	csrf     *session.CSRF
 	renderer *web.Renderer
@@ -37,7 +40,7 @@ type HTTPHandler struct {
 
 func NewHTTPHandler(deps HTTPDependencies) *HTTPHandler {
 	return &HTTPHandler{
-		service: deps.Service, sessions: deps.Sessions, csrf: deps.CSRF,
+		service: deps.Service, status: deps.Status, sessions: deps.Sessions, csrf: deps.CSRF,
 		renderer: deps.Renderer, assets: deps.Assets,
 	}
 }
@@ -75,7 +78,9 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, http.StatusInternalServerError, "无法读取应用", err.Error())
 		return
 	}
-	h.render(w, "app-list", map[string]any{"Apps": apps})
+	h.render(w, "app-list", map[string]any{
+		"Apps": apps, "PageTitle": "应用总览", "Layout": h.layoutFor(r, subject, "apps"),
+	})
 }
 
 func (h *HTTPHandler) newForm(w http.ResponseWriter, r *http.Request) {
@@ -84,11 +89,14 @@ func (h *HTTPHandler) newForm(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	_, ok := h.authenticated(w, r)
+	subject, ok := h.authenticated(w, r)
 	if !ok {
 		return
 	}
-	h.render(w, "app-form", h.formData(r, "创建应用", "/connect/apps"))
+	data := h.formData(r, "创建应用", "/connect/apps")
+	data["PageTitle"] = "创建应用"
+	data["Layout"] = h.layoutFor(r, subject, "new")
+	h.render(w, "app-form", data)
 }
 
 func (h *HTTPHandler) create(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +168,10 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, http.StatusNotFound, "应用不存在", "无法读取应用")
 			return
 		}
-		h.render(w, "app-list", map[string]any{"Apps": []domain.Application{app}})
+		h.render(w, "app-list", map[string]any{
+			"Apps": []domain.Application{app}, "PageTitle": "应用详情",
+			"Layout": h.layoutFor(r, subject, "apps"),
+		})
 	case r.Method == http.MethodPost && len(parts) == 2 && parts[1] == "submit":
 		if !h.validCSRF(r) {
 			h.fail(w, http.StatusForbidden, "请求已过期", "CSRF 校验失败")
@@ -196,7 +207,10 @@ func (h *HTTPHandler) viewSecret(w http.ResponseWriter, r *http.Request, subject
 		h.fail(w, http.StatusForbidden, "无法查看 Secret", err.Error())
 		return
 	}
-	h.render(w, "secret", map[string]any{"Secret": secret, "ID": id})
+	h.render(w, "secret", map[string]any{
+		"Secret": secret, "ID": id, "PageTitle": "Client Secret",
+		"Layout": h.layoutFor(r, subject, "apps"),
+	})
 }
 
 func (h *HTTPHandler) rotateSecret(w http.ResponseWriter, r *http.Request, subject string, id domain.ApplicationID) {
@@ -244,6 +258,26 @@ func (h *HTTPHandler) formData(r *http.Request, title, action string) map[string
 		token, _ = h.csrf.Token(sid)
 	}
 	return map[string]any{"Title": title, "Action": action, "CSRFToken": token}
+}
+
+func (h *HTTPHandler) layoutFor(r *http.Request, subject, active string) web.Layout {
+	layout := web.Layout{Active: active, Subject: subject}
+	if h != nil && h.csrf != nil && h.sessions != nil {
+		if sessionID, err := h.sessions.SessionID(r); err == nil {
+			layout.CSRFToken, _ = h.csrf.Token(sessionID)
+		}
+	}
+	if h != nil && h.status != nil && strings.TrimSpace(subject) != "" {
+		if snapshot, err := h.status.CurrentStatus(r.Context(), subject); err == nil {
+			layout.DisplayName = snapshot.Name
+			layout.Username = snapshot.Username
+			layout.AvatarURL = snapshot.AvatarURL
+			layout.TrustLevel = snapshot.TrustLevel
+			layout.IsReviewer = snapshot.Reviewer
+			layout.IsAdmin = snapshot.Admin
+		}
+	}
+	return layout
 }
 
 func (h *HTTPHandler) render(w http.ResponseWriter, name string, data any) {

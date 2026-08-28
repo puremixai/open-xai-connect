@@ -5,12 +5,14 @@ import (
 	"strings"
 
 	"connect.xai.run/internal/domain"
+	"connect.xai.run/internal/identity"
 	"connect.xai.run/internal/session"
 	"connect.xai.run/internal/web"
 )
 
 type HTTPDependencies struct {
 	Service  *Service
+	Status   identity.StatusLookup
 	Sessions *session.HTTPHandler
 	CSRF     *session.CSRF
 	Renderer *web.Renderer
@@ -18,18 +20,25 @@ type HTTPDependencies struct {
 
 type HTTPHandler struct {
 	service  *Service
+	status   identity.StatusLookup
 	sessions *session.HTTPHandler
 	csrf     *session.CSRF
 	renderer *web.Renderer
 }
 
+type AdminStats struct {
+	Total, Draft, PendingReview, Provisioning, Approved int
+	ChangesRequested, Rejected, Revoked                 int
+}
+
 func NewHTTPHandler(deps HTTPDependencies) *HTTPHandler {
-	return &HTTPHandler{service: deps.Service, sessions: deps.Sessions, csrf: deps.CSRF, renderer: deps.Renderer}
+	return &HTTPHandler{service: deps.Service, status: deps.Status, sessions: deps.Sessions, csrf: deps.CSRF, renderer: deps.Renderer}
 }
 
 func RegisterRoutes(mux *http.ServeMux, handler *HTTPHandler) {
 	mux.HandleFunc("/connect/review", handler.list)
 	mux.HandleFunc("/connect/review/", handler.decide)
+	mux.HandleFunc("/connect/admin", handler.adminOverview)
 }
 
 func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +57,10 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := h.csrfToken(r)
-	h.render(w, "review-queue", map[string]any{"Apps": apps, "CSRFToken": token})
+	h.render(w, "review-queue", map[string]any{
+		"Apps": apps, "CSRFToken": token, "PageTitle": "应用审核",
+		"Layout": h.layoutFor(r, subject, "review"),
+	})
 }
 
 func (h *HTTPHandler) decide(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +130,79 @@ func (h *HTTPHandler) csrfToken(r *http.Request) string {
 	id, _ := h.sessions.SessionID(r)
 	token, _ := h.csrf.Token(id)
 	return token
+}
+
+func (h *HTTPHandler) adminOverview(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	subject, ok := h.currentSubject(w, r)
+	if !ok {
+		return
+	}
+	if h.status == nil || h.service == nil || h.service.apps == nil {
+		h.errorPage(w, http.StatusServiceUnavailable, "无法读取运营概览", "管理员服务未配置")
+		return
+	}
+	status, err := h.status.CurrentStatus(r.Context(), subject)
+	if err != nil {
+		h.errorPage(w, http.StatusServiceUnavailable, "无法读取运营概览", "无法同步当前管理员身份")
+		return
+	}
+	if !status.Admin {
+		h.errorPage(w, http.StatusForbidden, "没有管理员权限", "请联系 xai.run 管理员加入 connect-admins 群组")
+		return
+	}
+	stats := AdminStats{}
+	for _, applicationStatus := range []domain.ApplicationStatus{
+		domain.StatusDraft, domain.StatusPendingReview, domain.StatusProvisioning,
+		domain.StatusApproved, domain.StatusChangesRequested, domain.StatusRejected,
+		domain.StatusRevoked,
+	} {
+		applications, listErr := h.service.apps.ListByStatus(r.Context(), applicationStatus)
+		if listErr != nil {
+			h.errorPage(w, http.StatusInternalServerError, "无法读取运营概览", "应用统计暂时不可用")
+			return
+		}
+		count := len(applications)
+		stats.Total += count
+		switch applicationStatus {
+		case domain.StatusDraft:
+			stats.Draft = count
+		case domain.StatusPendingReview:
+			stats.PendingReview = count
+		case domain.StatusProvisioning:
+			stats.Provisioning = count
+		case domain.StatusApproved:
+			stats.Approved = count
+		case domain.StatusChangesRequested:
+			stats.ChangesRequested = count
+		case domain.StatusRejected:
+			stats.Rejected = count
+		case domain.StatusRevoked:
+			stats.Revoked = count
+		}
+	}
+	h.render(w, "admin-overview", map[string]any{
+		"Stats": stats, "PageTitle": "运营概览", "Layout": h.layoutFor(r, subject, "admin"),
+	})
+}
+
+func (h *HTTPHandler) layoutFor(r *http.Request, subject, active string) web.Layout {
+	layout := web.Layout{Active: active, Subject: subject, CSRFToken: h.csrfToken(r)}
+	if h != nil && h.status != nil && strings.TrimSpace(subject) != "" {
+		if snapshot, err := h.status.CurrentStatus(r.Context(), subject); err == nil {
+			layout.DisplayName = snapshot.Name
+			layout.Username = snapshot.Username
+			layout.AvatarURL = snapshot.AvatarURL
+			layout.TrustLevel = snapshot.TrustLevel
+			layout.IsReviewer = snapshot.Reviewer
+			layout.IsAdmin = snapshot.Admin
+		}
+	}
+	return layout
 }
 
 func (h *HTTPHandler) render(w http.ResponseWriter, name string, data any) {

@@ -19,7 +19,7 @@ type User struct {
 }
 
 func (u User) CanManageApplications() bool {
-	return u.Active && !u.Silenced && !u.Suspended && u.TrustLevel >= 1
+	return u.Active && !u.Silenced && !u.Suspended && (u.TrustLevel >= 1 || u.Admin)
 }
 
 func (u User) CanAuthenticate() bool {

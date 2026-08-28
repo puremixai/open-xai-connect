@@ -81,6 +81,15 @@ func TestCreateDraftRequiresTL1ActiveNonSilencedUser(t *testing.T) {
 	}
 }
 
+func TestCreateDraftAllowsActiveConnectAdminBelowTL1(t *testing.T) {
+	service, _ := newAppService(identity.StatusSnapshot{
+		Subject: "sub_admin", Active: true, TrustLevel: 0, Admin: true,
+	})
+	if _, err := service.CreateDraft(context.Background(), "sub_admin", validDraftInput()); err != nil {
+		t.Fatalf("admin CreateDraft() error = %v", err)
+	}
+}
+
 func TestSubmitChecksOwnershipStateAndCallbackDomain(t *testing.T) {
 	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
 	input := validDraftInput()

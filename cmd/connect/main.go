@@ -202,10 +202,10 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 
 	identityEvents := identity.NewEventConsumer(verifier, db, eventIDs)
 	appHTTP := apps.NewHTTPHandler(apps.HTTPDependencies{
-		Service: appService, Sessions: sessions, CSRF: csrf, Renderer: renderer, Assets: assetStore,
+		Service: appService, Status: status, Sessions: sessions, CSRF: csrf, Renderer: renderer, Assets: assetStore,
 	})
 	reviewHTTP := reviews.NewHTTPHandler(reviews.HTTPDependencies{
-		Service: reviewService, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+		Service: reviewService, Status: status, Sessions: sessions, CSRF: csrf, Renderer: renderer,
 	})
 	consentHTTP := oauth.NewConsentHTTPHandler(oauth.ConsentHTTPDependencies{
 		Service: consentService, Sessions: sessions, CSRF: csrf, Renderer: renderer,

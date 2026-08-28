@@ -1,0 +1,40 @@
+{{template "portal-page-start" .}}
+
+<section class="page-header">
+  <div>
+    <p class="eyebrow">运营中心</p>
+    <h1>平台运营概览</h1>
+    <p class="lead">这里展示 Connect 应用的生命周期状态。账号权限和用户状态仍由 xai.run 管理。</p>
+  </div>
+  <div class="button-row"><a class="button button-secondary" href="/connect/review">打开审核队列</a></div>
+</section>
+
+<section class="admin-grid" aria-label="平台统计">
+  <div class="admin-stat"><span>全部应用</span><strong>{{.Stats.Total}}</strong><p>包含各生命周期状态</p></div>
+  <div class="admin-stat"><span>待审核</span><strong>{{.Stats.PendingReview}}</strong><p>需要审核员处理</p></div>
+  <div class="admin-stat"><span>正在上线</span><strong>{{.Stats.Provisioning}}</strong><p>等待 OIDC Client 创建</p></div>
+</section>
+
+<section class="admin-columns">
+  <div class="panel">
+    <div class="panel-head"><div><p class="section-label">应用生命周期</p><h2>状态分布</h2></div><a class="text-link" href="/connect/apps">查看我的应用</a></div>
+    <ul class="status-list">
+      <li><strong>草稿</strong><span>{{.Stats.Draft}}</span></li>
+      <li><strong>待审核</strong><span>{{.Stats.PendingReview}}</span></li>
+      <li><strong>正在上线</strong><span>{{.Stats.Provisioning}}</span></li>
+      <li><strong>已上线</strong><span>{{.Stats.Approved}}</span></li>
+      <li><strong>需要修改</strong><span>{{.Stats.ChangesRequested}}</span></li>
+      <li><strong>已驳回</strong><span>{{.Stats.Rejected}}</span></li>
+      <li><strong>已撤销</strong><span>{{.Stats.Revoked}}</span></li>
+    </ul>
+  </div>
+  <aside class="quick-panel">
+    <div class="admin-note"><strong>权限边界</strong><p>Connect 管理权限来自 xai.run 的 connect-admins 群组。Hydra Admin API 不对公网开放，也不需要人工创建应用。</p></div>
+    <div class="info-block"><h3>审核建议</h3><p>核对用途、回调地址和域名覆盖范围。批准后由 Portal 自动完成 Client Provisioning。</p><a class="text-link" href="/connect/review">处理待审核申请</a></div>
+    <div class="info-block"><h3>账号来源</h3><p>用户的账号状态、Trust Level 和群组权限以 xai.run 为准，状态变化会同步到 Connect。</p><a class="text-link" href="https://xai.run" target="_blank" rel="noreferrer">打开 xai.run</a></div>
+  </aside>
+</section>
+
+<footer class="portal-footer"><span>仅管理员可见</span><a href="https://github.com/puremixai/xai-connect" target="_blank" rel="noreferrer">查看运维文档</a></footer>
+
+{{template "portal-page-end" .}}

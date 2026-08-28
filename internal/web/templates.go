@@ -6,6 +6,9 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
+
+	"connect.xai.run/internal/domain"
 )
 
 //go:embed templates/*.html
@@ -16,11 +19,102 @@ type Renderer struct {
 }
 
 func NewRenderer() (*Renderer, error) {
-	parsed, err := template.New("connect").ParseFS(templateFS, "templates/*.html")
+	parsed, err := template.New("connect").Funcs(template.FuncMap{
+		"statusLabel": statusLabel,
+		"statusTone":  statusTone,
+		"countStatus": countStatus,
+		"countOpen":   countOpen,
+		"formatTime":  formatTime,
+		"truncate":    truncate,
+		"appInitial":  appInitial,
+	}).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
 	return &Renderer{templates: parsed}, nil
+}
+
+func statusLabel(status domain.ApplicationStatus) string {
+	switch status {
+	case domain.StatusDraft:
+		return "草稿"
+	case domain.StatusPendingReview:
+		return "待审核"
+	case domain.StatusProvisioning:
+		return "正在上线"
+	case domain.StatusApproved:
+		return "已上线"
+	case domain.StatusRejected:
+		return "已驳回"
+	case domain.StatusChangesRequested:
+		return "需要修改"
+	case domain.StatusRevoked:
+		return "已撤销"
+	default:
+		return "未知状态"
+	}
+}
+
+func statusTone(status domain.ApplicationStatus) string {
+	switch status {
+	case domain.StatusApproved:
+		return "success"
+	case domain.StatusPendingReview, domain.StatusProvisioning:
+		return "progress"
+	case domain.StatusRejected, domain.StatusRevoked:
+		return "danger"
+	case domain.StatusChangesRequested:
+		return "warning"
+	default:
+		return "neutral"
+	}
+}
+
+func countStatus(apps []domain.Application, wanted string) int {
+	count := 0
+	for _, app := range apps {
+		if string(app.Status) == wanted {
+			count++
+		}
+	}
+	return count
+}
+
+func countOpen(apps []domain.Application) int {
+	count := 0
+	for _, app := range apps {
+		if app.IsOpen() {
+			count++
+		}
+	}
+	return count
+}
+
+func formatTime(value time.Time) string {
+	if value.IsZero() {
+		return "-"
+	}
+	return value.Local().Format("2006-01-02 15:04")
+}
+
+func truncate(value string, limit int) string {
+	value = strings.TrimSpace(value)
+	if limit <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= limit {
+		return value
+	}
+	return string(runes[:limit]) + "…"
+}
+
+func appInitial(value string) string {
+	runes := []rune(strings.TrimSpace(value))
+	if len(runes) == 0 {
+		return "A"
+	}
+	return string(runes[0])
 }
 
 func (r *Renderer) Render(w http.ResponseWriter, name string, data any) error {

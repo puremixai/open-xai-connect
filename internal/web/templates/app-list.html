@@ -1,3 +1,66 @@
-<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>我的应用 · XAI Connect</title><style>body{font:16px system-ui,sans-serif;max-width:900px;margin:3rem auto;padding:0 1rem;color:#17202a}table{width:100%;border-collapse:collapse}th,td{padding:.7rem;border-bottom:1px solid #d9e0e7;text-align:left}a,button{color:#1769e0} .button{display:inline-block;padding:.55rem .8rem;border-radius:.45rem;background:#1769e0;color:#fff;text-decoration:none}</style></head>
-<body><main><h1>我的应用</h1><p><a class="button" href="/connect/apps/new">创建应用</a></p>{{if .Apps}}<table><thead><tr><th>名称</th><th>状态</th><th>更新时间</th><th></th></tr></thead><tbody>{{range .Apps}}<tr><td>{{.Name}}</td><td>{{.Status}}</td><td>{{.UpdatedAt}}</td><td><a href="/connect/apps/{{.ID}}">查看</a></td></tr>{{end}}</tbody></table>{{else}}<p>还没有应用。</p>{{end}}</main></body></html>
+{{template "portal-page-start" .}}
+
+<section class="page-header">
+  <div>
+    <p class="eyebrow">应用中心</p>
+    {{if eq .PageTitle "应用详情"}}<h1>应用详情</h1>{{else}}<h1>管理你的接入应用</h1>{{end}}
+    <p class="lead">集中查看应用状态、回调配置和上线进度。所有应用都使用 xai.run 的账号完成身份认证。</p>
+  </div>
+  <div class="button-row"><a class="button" href="/connect/apps/new">创建应用</a></div>
+</section>
+
+<section class="stats-grid" aria-label="应用统计">
+  <div class="stat-card"><span>我的应用</span><strong>{{len .Apps}}</strong><small>当前账号拥有</small></div>
+  <div class="stat-card"><span>开放中的应用</span><strong>{{countOpen .Apps}}</strong><small>仍在提交或上线流程</small></div>
+  <div class="stat-card"><span>已上线</span><strong>{{countStatus .Apps "approved"}}</strong><small>可以接受 OIDC 登录</small></div>
+  <div class="stat-card"><span>待处理</span><strong>{{countStatus .Apps "pending_review"}}</strong><small>等待审核决定</small></div>
+</section>
+
+<section class="content-grid">
+  <div class="panel">
+    <div class="panel-head">
+      <div><p class="section-label">接入项目</p><h2>我的应用</h2></div>
+      <a class="text-link" href="/connect/apps/new">新建应用</a>
+    </div>
+    {{if .Apps}}
+    <div class="app-list">
+      {{range .Apps}}
+      <a class="app-row" href="/connect/apps/{{.ID}}">
+        <span class="app-mark">
+          {{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.Name}} Logo">{{else}}{{appInitial .Name}}{{end}}
+        </span>
+        <span>
+          <span class="app-name">{{.Name}}</span>
+          <span class="app-description">{{truncate .Description 96}}</span>
+          <span class="app-meta"><span>{{len .CallbackURLs}} 个回调地址</span>{{if .ClientID}}<span>Client ID {{truncate (printf "%s" .ClientID) 18}}</span>{{end}}</span>
+        </span>
+        <span class="app-row-side"><span class="status-badge status-{{statusTone .Status}}">{{statusLabel .Status}}</span><span class="updated">{{formatTime .UpdatedAt}}</span></span>
+      </a>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="empty-state">
+      <h3>还没有应用</h3>
+      <p>创建第一个应用，审核通过后即可让其他网站使用 xai.run 账号登录。</p>
+      <a class="button" href="/connect/apps/new">创建第一个应用</a>
+    </div>
+    {{end}}
+  </div>
+
+  <aside class="quick-panel">
+    <div class="quick-intro"><h2>从这里开始</h2><p>三步完成一个安全的 OIDC 接入。</p></div>
+    <div class="panel">
+      <ol class="steps">
+        <li><span class="step-index">1</span><span><strong>填写应用信息</strong>登记用途、回调地址和已验证域名。</span></li>
+        <li><span class="step-index">2</span><span><strong>提交审核</strong>审核员会核对应用用途和回调安全性。</span></li>
+        <li><span class="step-index">3</span><span><strong>开始接入</strong>上线后保存 Client ID 和 Secret，按文档完成 PKCE 登录。</span></li>
+      </ol>
+    </div>
+    {{if .Layout.IsReviewer}}<div class="info-block"><h3>审核员通道</h3><p>你已获得应用审核权限。打开“应用审核”查看待处理申请。</p><a class="text-link" href="/connect/review">前往审核队列</a></div>{{end}}
+    {{if .Layout.IsAdmin}}<div class="info-block"><h3>管理员通道</h3><p>你已获得 Connect 管理员权限，可以查看平台运营概览。</p><a class="text-link" href="/connect/admin">查看运营概览</a></div>{{end}}
+  </aside>
+</section>
+
+<footer class="portal-footer"><span>账号状态由 xai.run 同步</span><a href="https://github.com/puremixai/xai-connect#登录流程authorization-code--pkce" target="_blank" rel="noreferrer">查看接入文档</a></footer>
+
+{{template "portal-page-end" .}}
