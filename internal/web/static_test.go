@@ -104,7 +104,7 @@ func TestPortalStylesheetCoversClassesUsedByTemplates(t *testing.T) {
 		"page-header", "breadcrumbs", "empty-state",
 		"workspace-grid", "app-table-row", "app-mark", "onboarding-list",
 		"detail-layout", "action-rail", "detail-grid-wide",
-		"form-workspace", "form-actions-sticky", "upload-label",
+		"form-page", "form-workspace", "form-actions-sticky", "upload-label", "upload-thumb", "form-footnote",
 		"review-workspace", "review-summary", "review-card", "danger-disclosure",
 		"admin-workspace", "lifecycle-list", "admin-stat-emphasis",
 		"secret-workspace", "secret-value", "stats-grid-compact",
