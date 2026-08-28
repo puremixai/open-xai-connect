@@ -22,6 +22,7 @@ var (
 
 type AccessController interface {
 	IsReviewer(context.Context, string) (bool, error)
+	IsAdmin(context.Context, string) (bool, error)
 }
 
 type Dependencies struct {
@@ -125,7 +126,13 @@ func (s *Service) prepareReview(ctx context.Context, reviewer string, id domain.
 		return err
 	}
 	if app.OwnerSubject == reviewer {
-		return ErrSelfReview
+		admin, err := s.access.IsAdmin(ctx, reviewer)
+		if err != nil {
+			return err
+		}
+		if !admin {
+			return ErrSelfReview
+		}
 	}
 	if app.Status != domain.StatusPendingReview {
 		return ErrInvalidState
@@ -141,7 +148,14 @@ func (s *Service) requireReviewer(ctx context.Context, subject string) error {
 	if err != nil {
 		return err
 	}
-	if !allowed {
+	if allowed {
+		return nil
+	}
+	admin, err := s.access.IsAdmin(ctx, subject)
+	if err != nil {
+		return err
+	}
+	if !admin {
 		return ErrNotReviewer
 	}
 	return nil

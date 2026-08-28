@@ -18,6 +18,23 @@ func (f fakeReviewer) IsReviewer(context.Context, string) (bool, error) {
 	return f.allowed, nil
 }
 
+func (fakeReviewer) IsAdmin(context.Context, string) (bool, error) {
+	return false, nil
+}
+
+type fakeReviewAccess struct {
+	reviewer bool
+	admin    bool
+}
+
+func (f fakeReviewAccess) IsReviewer(context.Context, string) (bool, error) {
+	return f.reviewer, nil
+}
+
+func (f fakeReviewAccess) IsAdmin(context.Context, string) (bool, error) {
+	return f.admin, nil
+}
+
 func seedPendingApp(t *testing.T) *memory.ApplicationRepository {
 	t.Helper()
 	repo := memory.NewApplicationRepository()
@@ -69,6 +86,20 @@ func TestReviewerCannotApproveOwnAppOrWithoutReviewerRole(t *testing.T) {
 	service = NewService(Dependencies{Apps: apps, Outbox: memory.NewOutboxRepository(), Access: fakeReviewer{allowed: true}})
 	if err := service.Approve(context.Background(), "owner", domain.ApplicationID("app_1"), "reason"); !errors.Is(err, ErrSelfReview) {
 		t.Fatalf("self review error = %v", err)
+	}
+}
+
+func TestAdminCanReviewAnyApplicationIncludingOwn(t *testing.T) {
+	apps := seedPendingApp(t)
+	service := NewService(Dependencies{
+		Apps: apps, Outbox: memory.NewOutboxRepository(),
+		Access: fakeReviewAccess{admin: true}, Now: func() time.Time { return time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC) },
+	})
+	if pending, err := service.ListPending(context.Background(), "owner"); err != nil || len(pending) != 1 {
+		t.Fatalf("admin ListPending() = %#v/%v", pending, err)
+	}
+	if err := service.Approve(context.Background(), "owner", domain.ApplicationID("app_1"), "admin review"); err != nil {
+		t.Fatalf("admin Approve() error = %v", err)
 	}
 }
 

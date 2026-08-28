@@ -198,7 +198,7 @@ func (h *HTTPHandler) layoutFor(r *http.Request, subject, active string) web.Lay
 			layout.Username = snapshot.Username
 			layout.AvatarURL = snapshot.AvatarURL
 			layout.TrustLevel = snapshot.TrustLevel
-			layout.IsReviewer = snapshot.Reviewer
+			layout.IsReviewer = snapshot.Reviewer || snapshot.Admin
 			layout.IsAdmin = snapshot.Admin
 		}
 	}

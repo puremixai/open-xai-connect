@@ -19,7 +19,7 @@
 - `GET /healthz` 只表示进程存活；`GET /readyz` 同时检查 PostgreSQL 和 Redis。
 - 观察 Hydra migration 是否成功、Portal 日志中的 provisioning 重试次数、outbox 积压和身份事件验签失败。
 - 确认反向代理不缓存 `/oauth2`、`/userinfo`、`/.well-known`、登录、consent、Secret 和撤销响应。
-- 审核员从 Discourse `connect-reviewers` 群组获得权限；管理员组默认是 `connect-admins`。这些标记只用于 Portal 内部授权，不进入 OIDC Claim。
+- 审核权限来自 Discourse `connect-reviewers` 群组；`connect-admins` 成员自动拥有全部审核权限（包含自己创建的应用）和运营概览权限。两组标记只用于 Portal 内部授权，不进入 OIDC Claim。
 
 ## 备份与恢复
 

@@ -329,7 +329,7 @@ go run ./examples/go-client revoke <token>
 3. 必须填写审核理由，然后选择“批准并上线”“要求修改”或“驳回”。
 4. 批准后 Portal 会异步创建 OIDC Client；应用所有者再从 Portal 获取 Client ID/Secret。
 
-审核员不能审核自己创建的应用。管理员不需要登录 Hydra、手工创建 OAuth Client，也不应直接修改 Portal 数据库。
+普通审核员不能审核自己创建的应用；`connect-admins` 成员可以审核所有应用，包括自己创建的应用。管理员不需要登录 Hydra、手工创建 OAuth Client，也不应直接修改 Portal 数据库。
 
 ### 账号和权限维护
 

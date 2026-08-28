@@ -96,7 +96,7 @@ func TestAdminOverviewShowsStatusCountsForAdmin(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("admin status = %d, body = %q", response.Code, response.Body.String())
 	}
-	for _, value := range []string{"运营概览", "待审核", "已上线", "Portal Admin"} {
+	for _, value := range []string{"运营概览", "应用审核", "待审核", "已上线", "Portal Admin"} {
 		if !strings.Contains(response.Body.String(), value) {
 			t.Fatalf("admin page missing %q: %q", value, response.Body.String())
 		}
