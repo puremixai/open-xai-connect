@@ -32,7 +32,10 @@ module ConnectIdentity
       return head :unauthorized unless secure_compare_hex(expected, signature)
 
       nonce_key = "connect_identity:nonce:#{Digest::SHA256.hexdigest(nonce)}"
-      accepted = Rails.cache.write(nonce_key, true, expires_in: window.seconds, unless_exist: true)
+      # Discourse's Cache wrapper deliberately exposes only a small API and
+      # does not support the ActiveSupport `unless_exist` option. Use the
+      # namespaced Redis client for an atomic NX+EX write instead.
+      accepted = Discourse.redis.set(nonce_key, "1", nx: true, ex: window)
       return head :unauthorized unless accepted
     rescue ArgumentError, TypeError
       head :unauthorized
