@@ -24,7 +24,7 @@ func TestClientFetchUserSignsRequestAndDecodesMinimumFields(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(UserSnapshot{
 			Subject: "sub_42", DiscourseID: 42, Username: "alice", Name: "Alice",
-			AvatarURL: "https://forum.example/avatar.png", TrustLevel: 1, Active: true,
+			Email: "alice@example.com", AvatarURL: "https://forum.example/avatar.png", TrustLevel: 1, Active: true,
 		})
 	}))
 	defer server.Close()
@@ -38,7 +38,7 @@ func TestClientFetchUserSignsRequestAndDecodesMinimumFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FetchUser() error = %v", err)
 	}
-	if got.Subject != "sub_42" || got.Username != "alice" || got.TrustLevel != 1 {
+	if got.Subject != "sub_42" || got.Username != "alice" || got.Email != "alice@example.com" || got.TrustLevel != 1 {
 		t.Fatalf("snapshot = %#v", got)
 	}
 }

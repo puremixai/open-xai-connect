@@ -276,7 +276,7 @@ func (s *Service) RotateSecret(ctx context.Context, subject string, id domain.Ap
 		ClientID: string(app.ClientID), ClientName: app.Name, LogoURI: app.LogoURL,
 		RedirectURIs:  append([]string(nil), app.CallbackURLs...),
 		GrantTypes:    []string{"authorization_code", "refresh_token"},
-		ResponseTypes: []string{"code"}, Scope: "openid profile community offline_access",
+		ResponseTypes: []string{"code"}, Scope: "openid profile email community offline_access",
 		TokenEndpointAuthMethod: "client_secret_basic", Owner: app.OwnerSubject,
 		ClientSecret: plaintext,
 	})

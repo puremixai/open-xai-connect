@@ -87,7 +87,7 @@ func (c *EventConsumer) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	}
 	if err := c.users.Upsert(r.Context(), domain.User{
 		Subject: user.Subject, DiscourseID: user.DiscourseID, Username: status.Username,
-		Name: status.Name, AvatarURL: status.AvatarURL, TrustLevel: status.TrustLevel,
+		Name: status.Name, Email: status.Email, AvatarURL: status.AvatarURL, TrustLevel: status.TrustLevel,
 		Active: status.Active, Silenced: status.Silenced, Suspended: status.Suspended,
 		Reviewer: status.Reviewer, Admin: status.Admin, CreatedAt: user.CreatedAt, UpdatedAt: now,
 	}); err != nil {

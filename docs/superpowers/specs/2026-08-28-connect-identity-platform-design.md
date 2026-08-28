@@ -113,7 +113,7 @@ DiscourseConnect Provider 提供登录签名。一个独立的 `discourse-connec
 - 在用户停用、恢复、禁言、解除禁言或信任等级变化时发送签名事件。
 - 支持 Connect 对少量近期活跃用户执行只读状态对账。
 
-插件不得提供通用管理员 API，不得返回邮箱、外部账号、任意群组列表、API Key 或任意查询字段。Reviewer/Admin 布尔值仅用于 Connect 后台访问控制，绝不进入 OIDC Token 或 UserInfo。服务间请求使用独立密钥签名，并校验时间戳、请求 ID 和重放窗口。
+插件不得提供通用管理员 API，不得返回外部账号、任意群组列表、API Key 或任意查询字段；邮箱只作为受保护的身份字段供 Portal 在用户批准 `email` Scope 后返回。Reviewer/Admin 布尔值仅用于 Connect 后台访问控制，绝不进入 OIDC Token 或 UserInfo。服务间请求使用独立密钥签名，并校验时间戳、请求 ID 和重放窗口。
 
 ### 4.4 数据存储
 
@@ -148,6 +148,7 @@ connect_users
 ├─ discourse_user_id       仅内部使用
 ├─ username_snapshot
 ├─ name_snapshot
+├─ email_snapshot
 ├─ avatar_snapshot
 ├─ trust_level_snapshot
 ├─ active
@@ -282,6 +283,7 @@ Hydra 的动态客户端注册接口不得通过公网暴露。所有 Client 只
 
 - `openid`：OIDC 身份标识。
 - `profile`：`sub`、`preferred_username`、`name`、`picture`。
+- `email`：`email`，仅在用户明确批准该 Scope 后返回。
 - `community`：`trust_level`、`active`、`silenced`。
 - `offline_access`：允许签发 Refresh Token，必须在授权页单独说明。
 
@@ -293,13 +295,14 @@ UserInfo 示例：
   "preferred_username": "论坛用户名",
   "name": "论坛昵称",
   "picture": "https://论坛头像地址",
+  "email": "alice@example.com",
   "trust_level": 1,
   "active": true,
   "silenced": false
 }
 ```
 
-任何情况下都不得返回邮箱、群组、外部账号、管理员身份、Moderator 身份、Discourse API Key 或未列入本设计的用户字段。UserInfo 只返回本次 Token 实际获批 Scope 对应的 Claim。
+除非用户实际批准 `email` Scope，否则不得返回邮箱；任何情况下都不得返回群组、外部账号、管理员身份、Moderator 身份、Discourse API Key 或未列入本设计的用户字段。UserInfo 只返回本次 Token 实际获批 Scope 对应的 Claim。
 
 ### 7.4 Token 和会话生命周期
 

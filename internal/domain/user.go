@@ -7,6 +7,7 @@ type User struct {
 	DiscourseID int64
 	Username    string
 	Name        string
+	Email       string
 	AvatarURL   string
 	TrustLevel  int
 	Active      bool

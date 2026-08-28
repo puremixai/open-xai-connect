@@ -22,8 +22,8 @@ func NewDiscoveryHandler(issuer string) http.Handler {
 		"grant_types_supported":                 []string{"authorization_code", "refresh_token"},
 		"subject_types_supported":               []string{"public"},
 		"token_endpoint_auth_methods_supported": []string{"client_secret_basic"},
-		"scopes_supported":                      []string{"openid", "profile", "community", "offline_access"},
-		"claims_supported":                      []string{"sub", "preferred_username", "name", "picture", "trust_level", "active", "silenced"},
+		"scopes_supported":                      []string{"openid", "profile", "email", "community", "offline_access"},
+		"claims_supported":                      []string{"sub", "preferred_username", "name", "picture", "email", "trust_level", "active", "silenced"},
 		"code_challenge_methods_supported":      []string{"S256"},
 		"userinfo_signing_alg_values_supported": []string{"none"},
 	}

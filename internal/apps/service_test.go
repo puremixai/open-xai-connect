@@ -226,7 +226,7 @@ func TestRotateSecretRequiresConfirmationAndInvalidatesOldSecret(t *testing.T) {
 		t.Fatalf("rotated secret = %q/%v", secret, err)
 	}
 	fake := service.hydra.(*hydra.Fake)
-	if len(fake.Updates) != 1 || fake.Updates[0].ClientID != "client_1" {
+	if len(fake.Updates) != 1 || fake.Updates[0].ClientID != "client_1" || fake.Updates[0].Scope != "openid profile email community offline_access" {
 		t.Fatalf("Hydra updates = %#v", fake.Updates)
 	}
 }

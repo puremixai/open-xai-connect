@@ -59,9 +59,9 @@ func TestValidateLoginRequestRejectsNonCodeOrMissingPKCE(t *testing.T) {
 
 func TestValidateLoginRequestRejectsUnknownScope(t *testing.T) {
 	request := validLoginRequest()
-	request.RequestURL = strings.Replace(request.RequestURL, "openid+profile", "openid+email", 1)
-	request.RequestedScope = []string{"openid", "email"}
+	request.RequestURL = strings.Replace(request.RequestURL, "openid+profile", "openid+unapproved", 1)
+	request.RequestedScope = []string{"openid", "unapproved"}
 	if err := ValidateLoginRequest(request); err == nil {
-		t.Fatal("ValidateLoginRequest() accepted email scope")
+		t.Fatal("ValidateLoginRequest() accepted an unapproved scope")
 	}
 }

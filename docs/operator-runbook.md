@@ -18,6 +18,7 @@
 
 - `GET /healthz` 只表示进程存活；`GET /readyz` 同时检查 PostgreSQL 和 Redis。
 - 观察 Hydra migration 是否成功、Portal 日志中的 provisioning 重试次数、outbox 积压和身份事件验签失败。
+- 升级到支持邮箱的版本时，先执行 `migrations/002_user_email.sql`（`users.email` 为非空字符串，已有用户默认空值），再重启 Portal；同时更新并重启 Discourse 的 `connect-identity` 插件。
 - 确认反向代理不缓存 `/oauth2`、`/userinfo`、`/.well-known`、登录、consent、Secret 和撤销响应。
 - 审核权限来自 Discourse `connect-reviewers` 群组；`connect-admins` 成员自动拥有全部审核权限（包含自己创建的应用）和运营概览权限。两组标记只用于 Portal 内部授权，不进入 OIDC Claim。
 

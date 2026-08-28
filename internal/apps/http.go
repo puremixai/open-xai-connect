@@ -163,6 +163,7 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 	id := domain.ApplicationID(parts[0])
 	switch {
 	case r.Method == http.MethodGet && len(parts) == 1:
+		w.Header().Set("Cache-Control", "no-store")
 		app, err := h.service.GetMine(r.Context(), subject, id)
 		if err != nil {
 			h.fail(w, http.StatusNotFound, "应用不存在", "无法读取应用")
@@ -170,7 +171,8 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 		}
 		h.render(w, "app-list", map[string]any{
 			"Apps": []domain.Application{app}, "PageTitle": "应用详情",
-			"Layout": h.layoutFor(r, subject, "apps"),
+			"Layout":      h.layoutFor(r, subject, "apps"),
+			"ConfirmedAt": h.confirmationTimestamp(),
 		})
 	case r.Method == http.MethodPost && len(parts) == 2 && parts[1] == "submit":
 		if !h.validCSRF(r) {
@@ -193,6 +195,7 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) viewSecret(w http.ResponseWriter, r *http.Request, subject string, id domain.ApplicationID) {
+	w.Header().Set("Cache-Control", "no-store")
 	if !h.validCSRF(r) {
 		h.fail(w, http.StatusForbidden, "请求已过期", "CSRF 校验失败")
 		return
@@ -214,6 +217,7 @@ func (h *HTTPHandler) viewSecret(w http.ResponseWriter, r *http.Request, subject
 }
 
 func (h *HTTPHandler) rotateSecret(w http.ResponseWriter, r *http.Request, subject string, id domain.ApplicationID) {
+	w.Header().Set("Cache-Control", "no-store")
 	if !h.validCSRF(r) {
 		h.fail(w, http.StatusForbidden, "请求已过期", "CSRF 校验失败")
 		return
@@ -258,6 +262,13 @@ func (h *HTTPHandler) formData(r *http.Request, title, action string) map[string
 		token, _ = h.csrf.Token(sid)
 	}
 	return map[string]any{"Title": title, "Action": action, "CSRFToken": token}
+}
+
+func (h *HTTPHandler) confirmationTimestamp() int64 {
+	if h != nil && h.service != nil && h.service.now != nil {
+		return h.service.now().UTC().Unix()
+	}
+	return time.Now().UTC().Unix()
 }
 
 func (h *HTTPHandler) layoutFor(r *http.Request, subject, active string) web.Layout {

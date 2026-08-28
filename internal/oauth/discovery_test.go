@@ -27,6 +27,9 @@ func TestDiscoveryContainsOnlyPublicOIDCEndpoints(t *testing.T) {
 		document["authorization_endpoint"] != "https://connect.xai.run/oauth2/auth" {
 		t.Fatalf("document = %#v", document)
 	}
+	if !strings.Contains(response.Body.String(), `"email"`) {
+		t.Fatalf("discovery does not advertise email scope/claim: %s", response.Body.String())
+	}
 	if strings.Contains(response.Body.String(), "4445") || strings.Contains(response.Body.String(), "admin") {
 		t.Fatal("discovery exposes Hydra admin information")
 	}

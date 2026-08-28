@@ -59,6 +59,9 @@ func TestProvisionerCreatesHydraClientEncryptsSecretAndCompletesEvent(t *testing
 	if len(hydraFake.Registrations) != 1 || hydraFake.Registrations[0].ResponseTypes[0] != "code" {
 		t.Fatalf("Hydra registrations = %#v", hydraFake.Registrations)
 	}
+	if hydraFake.Registrations[0].Scope != "openid profile email community offline_access" {
+		t.Fatalf("Hydra registration scope = %q", hydraFake.Registrations[0].Scope)
+	}
 	if _, err := outbox.ClaimNext(context.Background(), now.Add(time.Hour)); !errors.Is(err, store.ErrNotFound) {
 		t.Fatal("completed event was claimable")
 	}

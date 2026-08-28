@@ -77,6 +77,9 @@ func (s *UserInfoService) Claims(ctx context.Context, token string) (map[string]
 		claims["name"] = user.Name
 		claims["picture"] = user.AvatarURL
 	}
+	if contains(scopes, "email") && strings.TrimSpace(status.Email) != "" {
+		claims["email"] = status.Email
+	}
 	if contains(scopes, "community") {
 		claims["trust_level"] = status.TrustLevel
 		claims["active"] = status.Active

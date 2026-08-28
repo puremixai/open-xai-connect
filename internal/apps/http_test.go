@@ -68,3 +68,15 @@ func TestHTTPHandlerProtectsAppCreationWithSessionAndCSRF(t *testing.T) {
 		t.Fatalf("bad CSRF status = %d", badForm.Code)
 	}
 }
+
+func TestSecretActionDisablesCaching(t *testing.T) {
+	handler := &HTTPHandler{}
+	request := httptest.NewRequest(http.MethodPost, "/connect/apps/app_1/secret", nil)
+	response := httptest.NewRecorder()
+
+	handler.viewSecret(response, request, "sub_1", "app_1")
+
+	if got := response.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", got)
+	}
+}

@@ -18,3 +18,14 @@ func TestInitialMigrationContainsRequiredTables(t *testing.T) {
 		}
 	}
 }
+
+func TestEmailMigrationAddsUserEmail(t *testing.T) {
+	sql, err := os.ReadFile("../../migrations/002_user_email.sql")
+	if err != nil {
+		t.Fatalf("read email migration: %v", err)
+	}
+	content := strings.ToLower(string(sql))
+	if !strings.Contains(content, "alter table users") || !strings.Contains(content, "add column") || !strings.Contains(content, "email") {
+		t.Fatalf("email migration does not add users.email: %s", content)
+	}
+}

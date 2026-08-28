@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"connect.xai.run/internal/domain"
@@ -99,8 +100,12 @@ func (s *ConsentService) Accept(ctx context.Context, challenge, subject string, 
 	}); err != nil {
 		return "", err
 	}
+	var idTokenClaims map[string]any
+	if contains(selected, "email") && strings.TrimSpace(status.Email) != "" {
+		idTokenClaims = map[string]any{"email": status.Email}
+	}
 	redirect, err := s.hydra.AcceptConsent(ctx, challenge, hydra.ConsentAcceptance{
-		GrantScope: selected, Remember: remember,
+		GrantScope: selected, Remember: remember, IDTokenClaims: idTokenClaims,
 		RememberFor: int64(s.rememberFor / time.Second),
 	})
 	if err != nil {

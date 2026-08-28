@@ -2,7 +2,7 @@
 
 # name: connect-identity
 # about: Signed identity bridge between Discourse and XAI Connect
-# version: 0.1.0
+# version: 0.2.0
 # authors: XAI.RUN
 # url: https://connect.xai.run
 

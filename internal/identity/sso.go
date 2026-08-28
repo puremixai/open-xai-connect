@@ -176,7 +176,7 @@ func EnsureShadowUser(ctx context.Context, users store.UserRepository, provider 
 		return domain.User{}, ErrIdentityMismatch
 	}
 	now := time.Now().UTC()
-	user.DiscourseID, user.Username, user.Name, user.AvatarURL = snapshot.DiscourseID, snapshot.Username, snapshot.Name, snapshot.AvatarURL
+	user.DiscourseID, user.Username, user.Name, user.Email, user.AvatarURL = snapshot.DiscourseID, snapshot.Username, snapshot.Name, snapshot.Email, snapshot.AvatarURL
 	user.TrustLevel, user.Active, user.Silenced, user.Suspended = snapshot.TrustLevel, snapshot.Active, snapshot.Silenced, snapshot.Suspended
 	user.Reviewer, user.Admin, user.UpdatedAt = snapshot.Reviewer, snapshot.Admin, now
 	if user.CreatedAt.IsZero() {

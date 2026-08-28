@@ -11,6 +11,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ../migrations/001_init.sql:/docker-entrypoint-initdb.d/001_connect.sql:ro
+      - ../migrations/002_user_email.sql:/docker-entrypoint-initdb.d/002_user_email.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s

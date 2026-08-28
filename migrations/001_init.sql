@@ -3,6 +3,7 @@ CREATE TABLE users (
     discourse_id BIGINT NOT NULL UNIQUE,
     username TEXT NOT NULL,
     display_name TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
     avatar_url TEXT NOT NULL DEFAULT '',
     trust_level SMALLINT NOT NULL DEFAULT 0,
     active BOOLEAN NOT NULL DEFAULT TRUE,

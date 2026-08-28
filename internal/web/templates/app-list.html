@@ -85,7 +85,24 @@
   {{else if eq .Status "provisioning"}}
   <div class="detail-action"><p class="muted">后台正在创建 OIDC Client，完成后会显示 Client ID。</p></div>
   {{else if eq .Status "approved"}}
-  <div class="detail-action"><p class="muted">应用已上线，可以按接入文档开始使用。</p></div>
+  <div class="detail-action credential-action">
+    <div>
+      <p class="muted">应用已上线，可以按接入文档开始使用。</p>
+      <p class="field-help">Client Secret 仅显示给应用所有者；轮换后旧 Secret 会立即失效。</p>
+    </div>
+    <div class="button-row credential-actions">
+      <form method="post" action="/connect/apps/{{.ID}}/secret">
+        <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
+        <input type="hidden" name="confirmed_at" value="{{$.ConfirmedAt}}">
+        <button class="button button-secondary" type="submit">查看 Client Secret</button>
+      </form>
+      <form method="post" action="/connect/apps/{{.ID}}/rotate-secret">
+        <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
+        <input type="hidden" name="confirmed_at" value="{{$.ConfirmedAt}}">
+        <button class="button button-danger" type="submit">轮换 Secret</button>
+      </form>
+    </div>
+  </div>
   {{end}}
 </section>
 {{end}}

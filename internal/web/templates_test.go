@@ -49,6 +49,34 @@ func TestRendererShowsProvisioningActionForExistingDraft(t *testing.T) {
 	}
 }
 
+func TestRendererShowsCredentialActionsForApprovedApplication(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", map[string]any{
+		"PageTitle":    "应用详情",
+		"ConfirmedAt":  int64(1787918400),
+		"Apps":         []domain.Application{{ID: "app_1", Name: "Approved", Status: domain.StatusApproved, ClientID: "client_1"}},
+		"Layout":       Layout{Active: "apps", CSRFToken: "csrf"},
+	})
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	for _, expected := range []string{
+		`action="/connect/apps/app_1/secret"`,
+		`action="/connect/apps/app_1/rotate-secret"`,
+		`name="confirmed_at" value="1787918400"`,
+		"查看 Client Secret", "轮换 Secret",
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("approved credential action missing %q: %s", expected, body)
+		}
+	}
+}
+
 func TestRendererEscapesApplicationContentAndSetsSecurityHeaders(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {

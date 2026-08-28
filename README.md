@@ -27,7 +27,7 @@ XAI Connect 当前面向服务端 Web 应用，使用 OIDC Authorization Code + 
    - 可选的 PNG/JPEG Logo。
 3. 保存应用。平台默认免人工审核，应用会自动进入 `provisioning`，后台异步创建 OIDC Client。
 4. Provisioning 成功后应用状态变为 `approved`，页面显示 Client ID。
-5. 应用所有者在完成近期敏感操作确认后查看 Client Secret。Secret 可以明文显示，请立即保存到服务端密钥管理系统。
+5. 应用所有者在应用详情页完成近期敏感操作确认后，可以查看或轮换 Client Secret。轮换后旧 Secret 会立即失效；Secret 可以明文显示，请立即保存到服务端密钥管理系统。
 
 普通应用创建者必须是活跃、未被禁言且 Trust Level（TL）不低于 1 的 Discourse 用户；`connect-admins` 群组成员在账号活跃、未被禁言且未暂停时可直接创建应用，不受 TL1 限制。每个用户最多有 3 个处于开放状态的应用。
 
@@ -110,7 +110,7 @@ https://connect.xai.run/oauth2/auth
   ?client_id=YOUR_CLIENT_ID
   &redirect_uri=https%3A%2F%2Fapp.example.com%2Fauth%2Fxai%2Fcallback
   &response_type=code
-  &scope=openid%20profile%20community
+  &scope=openid%20profile%20email%20community
   &state=YOUR_STATE
   &nonce=YOUR_NONCE
   &code_challenge=YOUR_CODE_CHALLENGE
@@ -146,7 +146,7 @@ curl -sS -X POST "https://connect.xai.run/oauth2/token" \
   "access_token": "opaque-access-token",
   "token_type": "bearer",
   "expires_in": 86400,
-  "scope": "openid profile community",
+  "scope": "openid profile email community",
   "id_token": "eyJ..."
 }
 ```
@@ -180,6 +180,7 @@ curl -sS "https://connect.xai.run/userinfo" \
 | --- | --- |
 | `openid` | `sub` |
 | `profile` | `preferred_username`、`name`、`picture` |
+| `email` | `email` |
 | `community` | `trust_level`、`active`、`silenced` |
 
 示例：
@@ -190,13 +191,14 @@ curl -sS "https://connect.xai.run/userinfo" \
   "preferred_username": "alice",
   "name": "Alice",
   "picture": "https://...",
+  "email": "alice@example.com",
   "trust_level": 2,
   "active": true,
   "silenced": false
 }
 ```
 
-平台不会通过 OIDC 返回邮箱、Discourse ID、群组、管理员标记、外部账号或 API Key。用户状态发生变化后，新的登录和 UserInfo 请求会按当前 Discourse 状态处理。
+平台仅在用户实际批准 `email` Scope 时通过 OIDC 返回邮箱；不会返回 Discourse ID、群组、管理员标记、外部账号或 API Key。用户状态发生变化后，新的登录和 UserInfo 请求会按当前 Discourse 状态处理。
 
 建议按以下规则映射用户：
 
@@ -245,6 +247,14 @@ openid profile
 openid profile community
 ```
 
+只有确实需要邮箱时再申请：
+
+```text
+openid profile email
+```
+
+邮箱是个人资料字段，必须在授权页面向用户明确说明用途；未申请或未获批 `email` 时，相关 Claim 不会返回。
+
 只有需要离线刷新时再追加：
 
 ```text
@@ -275,6 +285,7 @@ $env:CONNECT_ISSUER_URL = "https://connect.xai.run"
 $env:CONNECT_CLIENT_ID = "your-client-id"
 $env:CONNECT_CLIENT_SECRET = "your-client-secret"
 $env:CONNECT_REDIRECT_URI = "https://app.example.com/auth/xai/callback"
+$env:CONNECT_SCOPE = "openid profile email community"
 
 go run ./examples/go-client discovery
 go run ./examples/go-client authorize

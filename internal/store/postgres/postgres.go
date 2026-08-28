@@ -276,13 +276,13 @@ func (s *Store) loadApplicationLists(ctx context.Context, app *domain.Applicatio
 
 func (s *Store) Upsert(ctx context.Context, user domain.User) error {
 	_, err := s.Pool.Exec(ctx, `INSERT INTO users
-		(subject, discourse_id, username, display_name, avatar_url, trust_level, active, silenced, suspended, reviewer, admin, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		(subject, discourse_id, username, display_name, email, avatar_url, trust_level, active, silenced, suspended, reviewer, admin, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		ON CONFLICT(subject) DO UPDATE SET discourse_id=EXCLUDED.discourse_id, username=EXCLUDED.username,
-		display_name=EXCLUDED.display_name, avatar_url=EXCLUDED.avatar_url, trust_level=EXCLUDED.trust_level,
+		display_name=EXCLUDED.display_name, email=EXCLUDED.email, avatar_url=EXCLUDED.avatar_url, trust_level=EXCLUDED.trust_level,
 		active=EXCLUDED.active, silenced=EXCLUDED.silenced, suspended=EXCLUDED.suspended,
 		reviewer=EXCLUDED.reviewer, admin=EXCLUDED.admin, updated_at=EXCLUDED.updated_at`,
-		user.Subject, user.DiscourseID, user.Username, user.Name, user.AvatarURL, user.TrustLevel,
+		user.Subject, user.DiscourseID, user.Username, user.Name, user.Email, user.AvatarURL, user.TrustLevel,
 		user.Active, user.Silenced, user.Suspended, user.Reviewer, user.Admin, user.CreatedAt, user.UpdatedAt)
 	return mapError(err)
 }
@@ -297,9 +297,9 @@ func (s *Store) GetByDiscourseID(ctx context.Context, id int64) (domain.User, er
 
 func (s *Store) getUser(ctx context.Context, predicate string, arg any) (domain.User, error) {
 	var user domain.User
-	err := s.Pool.QueryRow(ctx, `SELECT subject, discourse_id, username, display_name, avatar_url,
+	err := s.Pool.QueryRow(ctx, `SELECT subject, discourse_id, username, display_name, email, avatar_url,
 		trust_level, active, silenced, suspended, reviewer, admin, created_at, updated_at FROM users WHERE `+predicate, arg).
-		Scan(&user.Subject, &user.DiscourseID, &user.Username, &user.Name, &user.AvatarURL,
+		Scan(&user.Subject, &user.DiscourseID, &user.Username, &user.Name, &user.Email, &user.AvatarURL,
 			&user.TrustLevel, &user.Active, &user.Silenced, &user.Suspended, &user.Reviewer, &user.Admin,
 			&user.CreatedAt, &user.UpdatedAt)
 	return user, mapError(err)

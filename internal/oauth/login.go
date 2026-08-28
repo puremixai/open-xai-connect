@@ -12,7 +12,7 @@ import (
 var (
 	ErrInvalidAuthorization = errors.New("invalid OAuth authorization request")
 	allowedScopes           = map[string]struct{}{
-		"openid": {}, "profile": {}, "community": {}, "offline_access": {},
+		"openid": {}, "profile": {}, "email": {}, "community": {}, "offline_access": {},
 	}
 )
 

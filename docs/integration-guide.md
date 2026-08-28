@@ -23,20 +23,21 @@ https://connect.xai.run/.well-known/openid-configuration
 
 1. 生成至少 256 bit 的随机 `code_verifier`，计算 `S256` 的 `code_challenge`。
 2. 生成不可预测的 `state` 和 OIDC `nonce`，在自己的短期会话中保存。
-3. 将浏览器重定向到 `authorization_endpoint`，参数至少包含 `client_id`、精确 `redirect_uri`、`response_type=code`、`scope=openid profile community`、`state`、`nonce`、`code_challenge` 和 `code_challenge_method=S256`。
+3. 将浏览器重定向到 `authorization_endpoint`，参数至少包含 `client_id`、精确 `redirect_uri`、`response_type=code`、`scope=openid profile community`、`state`、`nonce`、`code_challenge` 和 `code_challenge_method=S256`；需要邮箱时追加 `email` Scope。
 4. 回调时校验 `state`，在服务端用 `client_secret_basic` 调用 `token_endpoint`，同时提交原始 `code_verifier`。
 5. 校验 ID Token 的签名、`iss`、`aud`、`exp`、`nonce`，再建立接入方自己的本地会话。
 6. 需要资料时使用短期 Access Token 调用 `userinfo_endpoint`，并在本地会话结束时调用 `revocation_endpoint`。
 
-允许的 Scope 为 `openid`、`profile`、`community` 和可选的 `offline_access`。只有本次 Token 实际获批的 Scope 对应 Claim 才会返回：
+允许的 Scope 为 `openid`、`profile`、`email`、`community` 和可选的 `offline_access`。只有本次 Token 实际获批的 Scope 对应 Claim 才会返回：
 
 | Scope | Claims |
 | --- | --- |
 | `openid` | `sub` |
 | `profile` | `preferred_username`、`name`、`picture` |
+| `email` | `email` |
 | `community` | `trust_level`、`active`、`silenced` |
 
-不会返回邮箱、群组、Discourse ID、管理员标记、外部账号或 API Key。账号被停用/封禁后，新的登录和 UserInfo 会失败；禁言用户仍可作为普通用户登录，但会看到 `silenced=true`。
+只有用户批准 `email` Scope 时才会返回邮箱；不会返回群组、Discourse ID、管理员标记、外部账号或 API Key。账号被停用/封禁后，新的登录和 UserInfo 会失败；禁言用户仍可作为普通用户登录，但会看到 `silenced=true`。
 
 ## 3. 刷新和退出
 
@@ -50,6 +51,7 @@ Access Token、Refresh Token、授权码和 Connect Session 都有平台侧生�
 
 ```powershell
 $env:CONNECT_ISSUER_URL = "https://connect.xai.run"
+$env:CONNECT_SCOPE = "openid profile email community" # 需要邮箱时追加 email
 go run ./examples/go-client discovery
 go run ./examples/go-client authorize
 go run ./examples/go-client exchange <code> <verifier>

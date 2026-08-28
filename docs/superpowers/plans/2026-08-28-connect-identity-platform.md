@@ -16,9 +16,9 @@
 - Only TL1-or-higher, active, non-silenced users can submit applications. A user may have at most three open applications. Suspended users cannot authenticate; silenced users may authenticate but cannot manage applications.
 - The default lifecycle is draft -> provisioning -> approved. Legacy or explicitly gated applications may use pending_review before provisioning. No Hydra client or credentials exist before provisioning; provisioning creates the production client.
 - Only confidential server-side web clients are supported. Authorization Code with PKCE S256 is required. Callback URLs are exact HTTPS URLs; wildcard, localhost, and IP callbacks are rejected.
-- Claims are limited to stable Connect sub, username, display name, avatar URL, trust level, active, and silenced. Do not expose email, groups, external IDs, admin flags, or Discourse API keys.
+- Claims are limited to stable Connect sub, username, display name, avatar URL, email (only with the explicit email scope), trust level, active, and silenced. Do not expose groups, external IDs, admin flags, or Discourse API keys.
 - Client secrets are encrypted at rest, masked by default, re-displayable in plaintext only to the owning developer after recent sensitive-action confirmation, never logged, and resettable by admins without retrieval.
-- Endpoints include discovery, authorization, token, revocation, userinfo, and JWKS. Scopes are openid, profile, community, and optional offline_access. Use the long approved TTLs from the design specification.
+- Endpoints include discovery, authorization, token, revocation, userinfo, and JWKS. Scopes are openid, profile, email, community, and optional offline_access. Use the long approved TTLs from the design specification.
 - Hydra admin APIs are private. Outbox events, idempotency keys, audit entries, nonce checks, HMAC verification, CSRF protection, secure cookies, rate limits, and fail-closed behavior are mandatory.
 - All source files and generated documentation use UTF-8. Every task below adds tests before or together with implementation and ends with a focused verification command.
 

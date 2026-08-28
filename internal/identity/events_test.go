@@ -26,7 +26,7 @@ func TestEventConsumerVerifiesAndAppliesSignedStatusEvent(t *testing.T) {
 	payload, _ := json.Marshal(StatusEvent{
 		EventID: "event-1", UserID: 42, EventType: "user_status_changed",
 		OccurredAt: now, Status: UserSnapshot{
-			DiscourseID: 42, Username: "alice", TrustLevel: 2, Active: false, Suspended: true,
+			DiscourseID: 42, Username: "alice", Email: "alice@example.com", TrustLevel: 2, Active: false, Suspended: true,
 		},
 	})
 	request := httptest.NewRequest(http.MethodPost, "https://connect.example/connect/identity/events", bytes.NewReader(payload))
@@ -41,7 +41,7 @@ func TestEventConsumerVerifiesAndAppliesSignedStatusEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetBySubject() error = %v", err)
 	}
-	if updated.Active || !updated.Suspended || updated.TrustLevel != 2 {
+	if updated.Active || !updated.Suspended || updated.Email != "alice@example.com" || updated.TrustLevel != 2 {
 		t.Fatalf("updated user = %#v", updated)
 	}
 	if err := consumer.ServeHTTP(httptest.NewRecorder(), request); err == nil {

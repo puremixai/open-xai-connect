@@ -24,15 +24,16 @@ RSpec.describe "Connect identity bridge", type: :request do
   end
 
   it "returns only the approved user fields" do
-    user = Fabricate(:user, username: "alice", name: "Alice", trust_level: 1)
+    user = Fabricate(:user, username: "alice", name: "Alice", email: "alice@example.com", trust_level: 1)
     get "/connect/identity/users/#{user.id}", headers: signed_headers("GET", "/connect/identity/users/#{user.id}")
     expect(response).to have_http_status(:ok)
     json = response.parsed_body
     expect(json.keys).to contain_exactly(
-      "discourse_id", "username", "name", "avatar_url", "trust_level",
+      "discourse_id", "username", "name", "email", "avatar_url", "trust_level",
       "active", "silenced", "suspended", "connect_reviewer", "connect_admin"
     )
-    expect(json).not_to include("email", "groups", "api_key")
+    expect(json["email"]).to eq("alice@example.com")
+    expect(json).not_to include("groups", "api_key")
   end
 
   it "rejects a replayed nonce" do

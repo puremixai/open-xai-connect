@@ -57,6 +57,7 @@ module ConnectIdentity
           discourse_id: @user.id,
           username: @user.username,
           name: @user.name.to_s,
+          email: @user.email.to_s,
           avatar_url: avatar_url,
           trust_level: @user.trust_level,
           active: @user.active?,

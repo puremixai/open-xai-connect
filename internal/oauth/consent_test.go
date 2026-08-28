@@ -13,19 +13,44 @@ import (
 )
 
 func TestFilterScopesDeduplicatesAndPreservesAllowedOrder(t *testing.T) {
-	got, err := FilterScopes([]string{"profile", "openid", "profile", "community"})
+	got, err := FilterScopes([]string{"profile", "openid", "profile", "community", "email"})
 	if err != nil {
 		t.Fatalf("FilterScopes() error = %v", err)
 	}
-	want := []string{"profile", "openid", "community"}
+	want := []string{"profile", "openid", "community", "email"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("scopes = %#v, want %#v", got, want)
 	}
 }
 
 func TestFilterScopesRejectsUnapprovedScope(t *testing.T) {
-	if _, err := FilterScopes([]string{"openid", "email"}); err == nil {
-		t.Fatal("FilterScopes() accepted email")
+	if _, err := FilterScopes([]string{"openid", "unapproved"}); err == nil {
+		t.Fatal("FilterScopes() accepted an unapproved scope")
+	}
+}
+
+func TestConsentServiceIncludesEmailInIDTokenClaimsWhenGranted(t *testing.T) {
+	hydraFake := hydra.NewFake()
+	hydraFake.Consent = hydra.ConsentRequest{
+		Challenge: "consent_email", Client: hydra.ClientInfo{ID: "client_email", Name: "Email App"},
+		RequestedScope: []string{"openid", "email"}, Subject: "sub_1",
+	}
+	apps := memory.NewApplicationRepository()
+	if err := apps.Create(context.Background(), domain.Application{
+		ID: domain.ApplicationID("app_email"), OwnerSubject: "owner", Name: "Email App",
+		Status: domain.StatusApproved, ClientID: domain.ClientID("client_email"),
+	}); err != nil {
+		t.Fatalf("seed app: %v", err)
+	}
+	service := NewConsentService(hydraFake, fakeStatusLookup{status: identity.StatusSnapshot{
+		Subject: "sub_1", Email: "alice@example.com", Active: true,
+	}}, apps, memory.NewConsentRepository(), time.Hour)
+
+	if _, err := service.Accept(context.Background(), "consent_email", "sub_1", []string{"openid", "email"}, false); err != nil {
+		t.Fatalf("Accept() error = %v", err)
+	}
+	if got := hydraFake.LastConsent.IDTokenClaims["email"]; got != "alice@example.com" {
+		t.Fatalf("ID token email claim = %#v, want alice@example.com", got)
 	}
 }
 

@@ -44,7 +44,7 @@ func (r *StatusRefresher) CurrentStatus(ctx context.Context, subject string) (St
 	now := r.now().UTC()
 	persisted := domain.User{
 		Subject: domain.UserID(stableSubject), DiscourseID: snapshot.DiscourseID,
-		Username: snapshot.Username, Name: snapshot.Name, AvatarURL: snapshot.AvatarURL,
+		Username: snapshot.Username, Name: snapshot.Name, Email: snapshot.Email, AvatarURL: snapshot.AvatarURL,
 		TrustLevel: snapshot.TrustLevel, Active: snapshot.Active,
 		Silenced: snapshot.Silenced, Suspended: snapshot.Suspended,
 		Reviewer: snapshot.Reviewer, Admin: snapshot.Admin,
@@ -55,7 +55,7 @@ func (r *StatusRefresher) CurrentStatus(ctx context.Context, subject string) (St
 	}
 	return StatusSnapshot{
 		Subject: stableSubject, TrustLevel: snapshot.TrustLevel,
-		Username: snapshot.Username, Name: snapshot.Name, AvatarURL: snapshot.AvatarURL,
+		Username: snapshot.Username, Name: snapshot.Name, Email: snapshot.Email, AvatarURL: snapshot.AvatarURL,
 		Active: snapshot.Active, Silenced: snapshot.Silenced, Suspended: snapshot.Suspended,
 		Reviewer: snapshot.Reviewer, Admin: snapshot.Admin,
 	}, nil

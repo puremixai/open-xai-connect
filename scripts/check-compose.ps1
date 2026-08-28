@@ -5,8 +5,8 @@ param(
 $ErrorActionPreference = "Stop"
 $content = Get-Content -LiteralPath $ComposeFile -Raw -Encoding UTF8
 
-if ($content -notmatch "oryd/hydra:v26\.3\.10") {
-    throw "Hydra image must be pinned to v26.3.10"
+if ($content -notmatch "oryd/hydra:v26\.2\.0") {
+    throw "Hydra image must be pinned to v26.2.0"
 }
 if ($content -match '(?m)^\s*-\s*[^\r\n]*:4445:4445') {
     throw "Hydra admin port 4445 must not be published"

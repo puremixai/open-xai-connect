@@ -29,7 +29,7 @@ func TestStatusRefresherPersistsCurrentDiscourseStatus(t *testing.T) {
 	}
 	provider := &fakeProvider{snapshot: UserSnapshot{
 		Subject: "sub_1", DiscourseID: 42, Username: "alice", Name: "Alice",
-		TrustLevel: 2, Active: true, Silenced: true, Suspended: false,
+		Email: "alice@example.com", TrustLevel: 2, Active: true, Silenced: true, Suspended: false,
 	}}
 	refresher := NewStatusRefresher(provider, users)
 
@@ -37,14 +37,14 @@ func TestStatusRefresherPersistsCurrentDiscourseStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CurrentStatus() error = %v", err)
 	}
-	if provider.calls != 1 || status.TrustLevel != 2 || !status.Silenced {
+	if provider.calls != 1 || status.TrustLevel != 2 || status.Email != "alice@example.com" || !status.Silenced {
 		t.Fatalf("provider calls/status = %d/%#v", provider.calls, status)
 	}
 	persisted, err := users.GetBySubject(context.Background(), domain.UserID("sub_1"))
 	if err != nil {
 		t.Fatalf("GetBySubject() error = %v", err)
 	}
-	if persisted.Username != "alice" || !persisted.Silenced {
+	if persisted.Username != "alice" || persisted.Email != "alice@example.com" || !persisted.Silenced {
 		t.Fatalf("persisted user = %#v", persisted)
 	}
 }

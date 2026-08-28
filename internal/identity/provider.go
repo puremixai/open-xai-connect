@@ -7,6 +7,7 @@ type UserSnapshot struct {
 	DiscourseID int64  `json:"discourse_id"`
 	Username    string `json:"username"`
 	Name        string `json:"name"`
+	Email       string `json:"email"`
 	AvatarURL   string `json:"avatar_url"`
 	TrustLevel  int    `json:"trust_level"`
 	Active      bool   `json:"active"`
@@ -28,6 +29,7 @@ type StatusSnapshot struct {
 	Subject    string `json:"subject"`
 	Username   string `json:"username"`
 	Name       string `json:"name"`
+	Email      string `json:"email"`
 	AvatarURL  string `json:"avatar_url"`
 	TrustLevel int    `json:"trust_level"`
 	Active     bool   `json:"active"`

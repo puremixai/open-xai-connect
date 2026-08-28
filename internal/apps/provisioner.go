@@ -85,7 +85,7 @@ func (p *Provisioner) RunOnce(ctx context.Context) (bool, error) {
 		credentials, err = p.hydra.CreateClient(ctx, hydra.ClientRegistration{
 			ClientName: app.Name, LogoURI: app.LogoURL, RedirectURIs: append([]string(nil), app.CallbackURLs...),
 			GrantTypes:    []string{"authorization_code", "refresh_token"},
-			ResponseTypes: []string{"code"}, Scope: "openid profile community offline_access",
+			ResponseTypes: []string{"code"}, Scope: "openid profile email community offline_access",
 			TokenEndpointAuthMethod: "client_secret_basic", Owner: app.OwnerSubject,
 			AccessTokenStrategy: "opaque", IDTokenLifespan: "1h",
 			AccessTokenLifespan: "24h", RefreshTokenLifespan: "4320h",

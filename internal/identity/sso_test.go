@@ -92,7 +92,7 @@ func (p ssoTestProvider) FetchUser(_ context.Context, id int64) (UserSnapshot, e
 
 func TestEnsureShadowUserKeepsStableSubject(t *testing.T) {
 	users := memory.NewUserRepository()
-	provider := ssoTestProvider{snapshot: UserSnapshot{DiscourseID: 7, Username: "alice", Name: "Alice", TrustLevel: 1, Active: true}}
+	provider := ssoTestProvider{snapshot: UserSnapshot{DiscourseID: 7, Username: "alice", Name: "Alice", Email: "alice@example.com", TrustLevel: 1, Active: true}}
 	first, err := EnsureShadowUser(context.Background(), users, provider, 7)
 	if err != nil {
 		t.Fatal(err)
@@ -105,7 +105,7 @@ func TestEnsureShadowUserKeepsStableSubject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if second.Subject != first.Subject || second.Name != "Alice Updated" {
+	if second.Subject != first.Subject || second.Name != "Alice Updated" || second.Email != "alice@example.com" {
 		t.Fatalf("shadow user changed unexpectedly: first=%#v second=%#v", first, second)
 	}
 }

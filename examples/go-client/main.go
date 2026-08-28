@@ -95,9 +95,13 @@ func printAuthorize(endpoint string) {
 	if _, err := rand.Read(nonceBytes); err != nil {
 		log.Fatal(err)
 	}
+	scope := strings.TrimSpace(os.Getenv("CONNECT_SCOPE"))
+	if scope == "" {
+		scope = "openid profile community"
+	}
 	values := url.Values{
 		"client_id": {clientID}, "redirect_uri": {redirectURI}, "response_type": {"code"},
-		"scope": {"openid profile community"}, "state": {base64.RawURLEncoding.EncodeToString(stateBytes)},
+		"scope": {scope}, "state": {base64.RawURLEncoding.EncodeToString(stateBytes)},
 		"nonce": {base64.RawURLEncoding.EncodeToString(nonceBytes)}, "code_challenge": {challenge}, "code_challenge_method": {"S256"},
 	}
 	fmt.Println(endpoint + "?" + values.Encode())
