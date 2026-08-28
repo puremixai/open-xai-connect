@@ -1,7 +1,7 @@
 /* XAI Connect Portal stylesheet.
  *
  * Design system for the authenticated portal: a calm developer console with
- * a neutral surface palette, a single indigo accent, a top navigation shell
+ * a neutral surface palette, a single orange accent, a top navigation shell
  * and restrained typography. Consent and error pages render outside this
  * shell and keep their own standalone sheets with matching tokens.
  *
@@ -124,10 +124,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .brand-mark {
   display: grid; place-items: center;
   width: 30px; height: 30px;
-  color: #fff; background: var(--accent);
+  color: #fff; background: var(--brand-gradient);
   border-radius: 9px;
-  font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 1px 2px rgba(16, 24, 40, .28);
 }
+.brand-mark svg { display: block; width: 14px; height: 14px; }
 .brand-name { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
 
 .portal-nav { display: flex; align-items: center; gap: 2px; min-width: 0; }
@@ -139,18 +140,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   transition: background .14s ease, color .14s ease;
 }
 .portal-nav a:hover { color: var(--text); background: var(--surface-2); }
-.portal-nav a.is-active { color: var(--accent-text); background: var(--accent-soft); }
+.portal-nav a.is-active { color: var(--accent-text); background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent); }
 
 .topbar-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; min-width: 0; }
 .topbar-link { color: var(--text-3); font-size: 13px; text-decoration: none; white-space: nowrap; }
 .topbar-link:hover { color: var(--accent-text); }
 
-.user-chip { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.user-chip { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 3px 8px 3px 3px; border-radius: 999px; transition: background .14s ease; }
+.user-chip:hover { background: var(--surface-2); }
 .user-avatar {
   display: grid; place-items: center; flex: 0 0 auto;
   width: 28px; height: 28px;
   color: var(--accent-text); background: var(--accent-soft);
   border-radius: 50%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
   font-size: 12px; font-weight: 600;
 }
 .user-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 13px; font-weight: 500; }
@@ -197,19 +200,33 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
 .button {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   min-height: 38px; padding: 0 16px;
-  color: #fff; background: var(--accent);
-  border: 1px solid var(--accent); border-radius: var(--radius-sm);
+  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #fff), var(--accent));
+  border: 1px solid color-mix(in srgb, var(--accent) 86%, #000); border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 1px 2px rgba(16, 24, 40, .14);
   font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; white-space: nowrap;
-  transition: background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease;
+  transition: transform .15s var(--ease), box-shadow .15s var(--ease), background .14s ease, border-color .14s ease;
 }
-.button:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-.button:active { background: var(--accent); }
+.button:hover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-hover) 86%, #fff), var(--accent-hover));
+  border-color: color-mix(in srgb, var(--accent-hover) 86%, #000);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 5px 12px -4px color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: translateY(-1px);
+}
+.button:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 2px rgba(16, 24, 40, .2);
+}
 
 .button-secondary {
   color: var(--text); background: var(--surface); border-color: var(--border-strong);
+  box-shadow: var(--shadow-xs);
 }
-.button-secondary:hover { color: var(--text); background: var(--surface-2); border-color: var(--border-strong); }
-.button-secondary:active { background: var(--surface); }
+.button-secondary:hover {
+  color: var(--text); background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border-strong));
+}
+.button-secondary:active { background: var(--surface); box-shadow: none; }
 
 .button-danger {
   color: var(--danger); background: transparent; border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
@@ -283,7 +300,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
 }
 .panel-head {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -301,6 +318,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 22px; padding: 1px 9px;
   border-radius: 999px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent);
   font-size: 12px; font-weight: 500; white-space: nowrap;
 }
 .status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -317,7 +335,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
 .stat-card > span { display: block; color: var(--text-2); font-size: 13px; font-weight: 500; }
 .stat-card strong {
   display: block; margin-top: 6px;
-  font-size: 26px; line-height: 1.15; font-weight: 600; letter-spacing: -.02em;
+  font-size: 28px; line-height: 1.12; font-weight: 600; letter-spacing: -.03em;
   font-variant-numeric: tabular-nums;
 }
 .stat-card small { display: block; margin-top: 3px; color: var(--text-3); font-size: 12px; }
@@ -331,6 +349,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
   width: 40px; height: 40px; overflow: hidden;
   color: var(--accent-text); background: var(--accent-soft);
   border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
   font-size: 16px; font-weight: 600;
 }
 .app-mark img { width: 100%; height: 100%; object-fit: cover; }
@@ -346,8 +365,9 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
 .empty-mark {
   display: grid; place-items: center; margin-bottom: 8px;
   width: 44px; height: 44px;
-  color: var(--accent-text); background: var(--accent-soft);
+  color: #fff; background: linear-gradient(135deg, var(--accent-hover), var(--accent));
   border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 0 0 6px var(--accent-soft);
   font-size: 20px; line-height: 1;
 }
 
@@ -468,14 +488,23 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
 .detail-grid-wide dt { color: var(--text-3); font-size: 13px; }
 .detail-grid-wide dd { color: var(--text); overflow-wrap: anywhere; font-size: 13.5px; }
 
-.detail-steps { display: grid; margin: 0; padding: 4px 0 0; list-style: none; }
-.detail-steps li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px 0; }
-.detail-steps li + li { border-top: 1px solid var(--border); }
+.detail-steps { display: grid; margin: 0; padding: 2px 0 0; list-style: none; }
+.detail-steps li {
+  position: relative;
+  display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 10px 0;
+}
+.detail-steps li:not(:last-child)::before {
+  content: ""; position: absolute; top: 42px; bottom: -14px; left: 13px;
+  width: 1px; background: var(--border);
+}
 .step-index {
+  position: relative; z-index: 1;
   display: grid; place-items: center;
   width: 26px; height: 26px;
   color: var(--accent-text); background: var(--accent-soft);
   border-radius: 50%; font-size: 12px; font-weight: 600;
+  box-shadow: 0 0 0 3px var(--surface);
   font-variant-numeric: tabular-nums;
 }
 .detail-steps li.is-done .step-index { color: var(--success); background: var(--success-soft); }
@@ -579,15 +608,23 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
   border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer;
   transition: background .14s ease, border-color .14s ease, color .14s ease;
 }
-.button-approve { color: #fff; background: var(--success-solid); border: 1px solid var(--success-solid); }
-.button-approve:hover { background: color-mix(in srgb, var(--success-solid) 88%, #000); }
+.button-approve {
+  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--success-solid) 86%, #fff), var(--success-solid));
+  border: 1px solid color-mix(in srgb, var(--success-solid) 82%, #000);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 1px 2px rgba(16, 24, 40, .12);
+}
+.button-approve:hover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--success-solid) 78%, #fff), var(--success-solid));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 4px 10px -4px color-mix(in srgb, var(--success-solid) 60%, transparent);
+}
 .button-changes { color: var(--warning); background: var(--warning-soft); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
 .button-changes:hover { border-color: var(--warning); }
 .button-reject { color: var(--danger); background: var(--danger-soft); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); }
 .button-reject:hover { border-color: var(--danger); }
 
 .review-empty { display: flex; align-items: flex-start; gap: 14px; padding: 30px 24px; }
-.review-empty .empty-mark { margin: 0; color: var(--success); background: var(--success-soft); }
+.review-empty .empty-mark { margin: 0; color: var(--success); background: var(--success-soft); box-shadow: 0 0 0 6px color-mix(in srgb, var(--success) 12%, transparent); }
 .review-empty h2 { margin-bottom: 4px; }
 .review-empty p { margin-bottom: 10px; color: var(--text-2); font-size: 13px; }
 
