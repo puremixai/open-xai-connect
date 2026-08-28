@@ -1,0 +1,8 @@
+zh_CN:
+  site_settings:
+    connect_identity_enabled: "启用 XAI Connect 身份桥接"
+    connect_identity_base_url: "XAI Connect Portal 地址"
+    connect_identity_shared_secret: "Portal 与 Discourse 之间的 HMAC 密钥"
+    connect_identity_reviewer_groups: "可审核 Connect 应用的群组名称，使用 | 分隔"
+    connect_identity_admin_groups: "可执行 Connect 管理操作的群组名称，使用 | 分隔"
+    connect_identity_request_window_seconds: "桥接请求允许的时间窗口（秒）"

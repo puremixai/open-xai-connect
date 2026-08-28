@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}} · XAI Connect</title><style>body{font:16px system-ui,sans-serif;max-width:760px;margin:3rem auto;padding:0 1rem;color:#17202a}label{display:block;margin:1rem 0 .35rem;font-weight:600}input,textarea{box-sizing:border-box;width:100%;padding:.7rem;border:1px solid #b8c2cc;border-radius:.5rem}button{margin-top:1.25rem;padding:.7rem 1rem;border:0;border-radius:.5rem;background:#1769e0;color:#fff;font-weight:600}</style></head>
+<body><main><p><a href="/connect/apps">XAI Connect</a></p><h1>{{.Title}}</h1>
+<form method="post" action="{{.Action}}" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<label for="name">应用名称</label><input id="name" name="name" maxlength="120" required value="{{.Name}}">
+<label for="description">用途说明</label><textarea id="description" name="description" maxlength="2000" required>{{.Description}}</textarea>
+<label for="callbacks">回调地址（每行一个，必须 HTTPS）</label><textarea id="callbacks" name="callbacks" required>{{.Callbacks}}</textarea>
+<label for="domains">已验证域名（每行一个）</label><textarea id="domains" name="domains" required>{{.Domains}}</textarea>
+<label for="logo">Logo（PNG/JPEG，32–1024 像素，≤512 KiB）</label><input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
+<button type="submit">保存草稿</button></form></main></body></html>

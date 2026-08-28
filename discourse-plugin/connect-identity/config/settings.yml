@@ -1,0 +1,19 @@
+connect_identity_enabled:
+  default: false
+  client: true
+connect_identity_base_url:
+  default: "https://connect.xai.run"
+  client: false
+connect_identity_shared_secret:
+  default: ""
+  client: false
+  secret: true
+connect_identity_reviewer_groups:
+  default: "connect-reviewers"
+  client: false
+connect_identity_admin_groups:
+  default: "connect-admins"
+  client: false
+connect_identity_request_window_seconds:
+  default: 300
+  client: false

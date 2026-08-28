@@ -1,0 +1,110 @@
+name: xai-connect
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-connect}
+      POSTGRES_USER: ${POSTGRES_USER:-connect}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../migrations/001_init.sql:/docker-entrypoint-initdb.d/001_connect.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  hydra-migrate:
+    image: oryd/hydra:v26.3.10
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: migrate sql -e --yes
+    environment:
+      DSN: postgres://${POSTGRES_USER:-connect}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
+
+  hydra:
+    image: oryd/hydra:v26.3.10
+    restart: unless-stopped
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    command: serve all --dev=false
+    environment:
+      DSN: postgres://${POSTGRES_USER:-connect}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
+      URLS_SELF_ISSUER: https://${CONNECT_HOST:?set CONNECT_HOST}/
+      URLS_LOGIN: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/login
+      URLS_CONSENT: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/consent
+      URLS_LOGOUT: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/logout
+      SECRETS_SYSTEM: ${HYDRA_SYSTEM_SECRET:?set HYDRA_SYSTEM_SECRET}
+      SECRETS_COOKIE: ${HYDRA_COOKIE_SECRET:?set HYDRA_COOKIE_SECRET}
+      OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${HYDRA_PAIRWISE_SALT:?set HYDRA_PAIRWISE_SALT}
+      LOG_LEAK_SENSITIVE_VALUES: "false"
+      LOG_LEVEL: info
+    expose:
+      - "4444"
+      - "4445"
+    ports:
+      - "127.0.0.1:${HYDRA_PUBLIC_PORT:-4444}:4444"
+    healthcheck:
+      test: ["CMD", "hydra", "version"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  portal:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      hydra:
+        condition: service_started
+    environment:
+      CONNECT_LISTEN_ADDR: :8080
+      CONNECT_ISSUER_URL: https://${CONNECT_HOST:?set CONNECT_HOST}
+      CONNECT_ENV: production
+      CONNECT_COOKIE_NAME: __Host-connect_session
+      CONNECT_COOKIE_SECURE: "true"
+      CONNECT_ASSET_DIR: /var/lib/connect/assets
+      CONNECT_ENCRYPTION_KEY: ${CONNECT_ENCRYPTION_KEY:?set CONNECT_ENCRYPTION_KEY}
+      DISCOURSE_URL: ${DISCOURSE_URL:?set DISCOURSE_URL}
+      DISCOURSE_SHARED_SECRET: ${DISCOURSE_SHARED_SECRET:?set DISCOURSE_SHARED_SECRET}
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-connect}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      HYDRA_PUBLIC_URL: http://hydra:4444
+      HYDRA_ADMIN_URL: http://hydra:4445
+    volumes:
+      - portal-assets:/var/lib/connect/assets
+    ports:
+      - "127.0.0.1:${PORTAL_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "/connect", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
+  portal-assets:
