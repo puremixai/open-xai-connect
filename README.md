@@ -285,7 +285,60 @@ go run ./examples/go-client revoke <token>
 
 `authorize` 命令会输出授权 URL 和需要保留的 `code_verifier`；生产环境应把这些值放在短期服务端 Session 中，而不是让用户手工复制。
 
-## 9. 平台部署者说明
+## 9. xai.run（Discourse）管理员操作
+
+这里的 `xai.run` 指 Discourse 论坛；第三方应用的审核入口仍在 `connect.xai.run`。如果已经按本项目完成部署，Portal、插件和 Nginx 已配置好，管理员主要确认群组和成员即可。
+
+### 首次配置
+
+在 Discourse 管理后台完成以下检查：
+
+1. 确认 `connect-identity` 插件已安装并启用。
+2. 在站点设置中搜索 `connect_identity`，确认：
+
+   | 设置 | 建议值 |
+   | --- | --- |
+   | `connect_identity_enabled` | `true` |
+   | `connect_identity_base_url` | `https://connect.xai.run` |
+   | `connect_identity_shared_secret` | 与 Portal 的 `DISCOURSE_SHARED_SECRET` 完全相同 |
+   | `connect_identity_reviewer_groups` | `connect-reviewers`（可用 `\|` 添加多个群组） |
+   | `connect_identity_admin_groups` | `connect-admins`（可用 `\|` 添加多个群组） |
+   | `connect_identity_request_window_seconds` | 默认 `300`；跨地域或网络较慢时可适当增大 |
+
+   共享密钥只应通过服务器密钥管理或受控运维渠道配置，不要粘贴到工单、聊天、浏览器或代码仓库。
+
+3. 确认 Discourse 内置 Connect Provider 设置：
+
+   - `enable_discourse_connect_provider = true`；
+   - `discourse_connect_provider_secrets` 包含 `connect.xai.run|同一共享密钥`；
+   - `discourse_connect_allowed_redirect_domains` 包含 `connect.xai.run`。
+
+4. 在“管理后台 → 群组”创建并维护：
+
+   - `connect-reviewers`：允许成员审核 Connect 应用；
+   - `connect-admins`：Connect 管理员标记，供管理级功能使用。
+
+   当前版本的审核权限由 `connect-reviewers` 控制；`connect-admins` 的身份标记已经同步到 Portal，但没有要求管理员通过 Hydra Admin API 手工创建客户端。
+
+插件代码或 `app.yml` 发生变化时才需要重建 Discourse 容器；普通站点设置和群组成员调整通常即时生效。
+
+### 日常审核
+
+1. 审核员使用自己的 Discourse 账号打开 <https://connect.xai.run/connect/review>。
+2. 查看待审核应用的名称、用途、回调地址和已验证域名。
+3. 必须填写审核理由，然后选择“批准并上线”“要求修改”或“驳回”。
+4. 批准后 Portal 会异步创建 OIDC Client；应用所有者再从 Portal 获取 Client ID/Secret。
+
+审核员不能审核自己创建的应用。管理员不需要登录 Hydra、手工创建 OAuth Client，也不应直接修改 Portal 数据库。
+
+### 账号和权限维护
+
+- 用户的账号、密码、二步验证、活跃/暂停/禁言状态仍在 Discourse 管理；插件会将必要状态同步给 Portal。
+- 要取消审核权限，从 `connect-reviewers` 移除用户即可。
+- 要阻止某用户继续登录，按 Discourse 的正常流程停用或暂停账号。
+- 如需轮换 Portal 与 Discourse 之间的共享密钥，必须同时更新两端并安排短暂维护窗口。
+
+## 10. 平台部署者说明
 
 如果需要自行部署 Portal、Hydra、PostgreSQL、Redis 和 Discourse 插件，请参阅：
 
