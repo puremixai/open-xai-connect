@@ -50,47 +50,15 @@
   --radius: 10px;
   --radius-sm: 8px;
   --shadow-xs: 0 1px 2px rgba(16, 24, 40, .05);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 20px -10px rgba(16, 24, 40, .1);
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --brand-gradient: linear-gradient(135deg, #f97316, #c2410c);
+  --bg-wash: radial-gradient(1100px 460px at 50% -160px, rgba(234, 88, 12, .06), transparent 65%);
   --ring-offset: 0 0 0 3px var(--ring);
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --mono: "Cascadia Code", "SF Mono", ui-monospace, Consolas, "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #0e1116;
-    --surface: #151922;
-    --surface-2: #1b202b;
-    --border: #262d3a;
-    --border-strong: #394154;
-    --text: #eceef2;
-    --text-2: #a6aebc;
-    --text-3: #7e8698;
-    --accent: #ea580c;
-    --accent-hover: #f97316;
-    --accent-text: #ffb27d;
-    --accent-soft: rgba(234, 88, 12, .2);
-    --ring: rgba(249, 115, 22, .4);
-    --success: #6ce0ad;
-    --success-soft: rgba(7, 148, 85, .18);
-    --success-solid: #079455;
-    --warning: #f6bd7d;
-    --warning-soft: rgba(181, 71, 8, .2);
-    --danger: #fda29b;
-    --danger-soft: rgba(180, 35, 24, .2);
-    --tone-neutral-fg: #b6bdcb;
-    --tone-neutral-bg: #262d3a;
-    --tone-progress-fg: #84adff;
-    --tone-progress-bg: rgba(53, 99, 233, .2);
-    --tone-success-fg: #6ce0ad;
-    --tone-success-bg: rgba(7, 148, 85, .18);
-    --tone-warning-fg: #f6bd7d;
-    --tone-warning-bg: rgba(181, 71, 8, .2);
-    --tone-danger-fg: #fda29b;
-    --tone-danger-bg: rgba(180, 35, 24, .2);
-    --shadow-xs: none;
-  }
-}
 
 /* 2. Base ----------------------------------------------------------------- */
 
@@ -101,6 +69,9 @@ html { min-height: 100%; background: var(--bg); }
 body {
   margin: 0;
   color: var(--text);
+  background-color: var(--bg);
+  background-image: var(--bg-wash);
+  background-repeat: no-repeat;
   font: 14px/1.6 var(--sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
