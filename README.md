@@ -29,7 +29,7 @@ XAI Connect 当前面向服务端 Web 应用，使用 OIDC Authorization Code + 
 4. 审核通过后，平台异步创建 OIDC Client，应用状态变为 `approved`，页面显示 Client ID。
 5. 应用所有者在完成近期敏感操作确认后查看 Client Secret。Secret 可以明文显示，请立即保存到服务端密钥管理系统。
 
-应用创建者必须是活跃、未被禁言且 Trust Level（TL）不低于 1 的 Discourse 用户。每个用户最多有 3 个处于开放状态的应用。
+普通应用创建者必须是活跃、未被禁言且 Trust Level（TL）不低于 1 的 Discourse 用户；`connect-admins` 群组成员在账号活跃、未被禁言且未暂停时可直接创建和提交应用，不受 TL1 限制。每个用户最多有 3 个处于开放状态的应用。
 
 ### 回调地址示例
 
@@ -318,7 +318,7 @@ go run ./examples/go-client revoke <token>
    - `connect-reviewers`：允许成员审核 Connect 应用；
    - `connect-admins`：Connect 管理员标记，供管理级功能使用。
 
-   当前版本的审核权限由 `connect-reviewers` 控制；`connect-admins` 的身份标记已经同步到 Portal，但没有要求管理员通过 Hydra Admin API 手工创建客户端。
+   当前版本的审核权限由 `connect-reviewers` 控制；`connect-admins` 成员可以访问 Portal 的“运营概览”，并可在满足账号状态要求时绕过 TL1 创建和提交应用。两组身份标记都会同步到 Portal，不要求管理员通过 Hydra Admin API 手工创建客户端。
 
 插件代码或 `app.yml` 发生变化时才需要重建 Discourse 容器；普通站点设置和群组成员调整通常即时生效。
 
