@@ -49,7 +49,7 @@ services:
     command: serve all --dev=false
     environment:
       DSN: postgres://${POSTGRES_USER:-connect}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-connect}?sslmode=disable
-      URLS_SELF_ISSUER: https://${CONNECT_HOST:?set CONNECT_HOST}/
+      URLS_SELF_ISSUER: https://${CONNECT_HOST:?set CONNECT_HOST}
       URLS_LOGIN: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/login
       URLS_CONSENT: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/consent
       URLS_LOGOUT: https://${CONNECT_HOST:?set CONNECT_HOST}/connect/logout
