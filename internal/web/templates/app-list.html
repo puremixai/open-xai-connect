@@ -104,17 +104,6 @@
           <input type="hidden" name="confirmed_at" value="{{$.ConfirmedAt}}">
           <button class="button button-wide" type="submit">查看 Client Secret</button>
         </form>
-        <details class="danger-disclosure">
-          <summary>轮换 Secret</summary>
-          <div>
-            <p>轮换后旧 Secret 会立即失效，只有在泄露或定期更换时执行。</p>
-            <form method="post" action="/connect/apps/{{.ID}}/rotate-secret">
-              <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
-              <input type="hidden" name="confirmed_at" value="{{$.ConfirmedAt}}">
-              <button class="button button-danger button-wide" type="submit">确认轮换 Secret</button>
-            </form>
-          </div>
-        </details>
       </div>
       {{else}}
       <h2>{{statusLabel .Status}}</h2>
@@ -123,19 +112,42 @@
     </section>
 
     {{if canDelete .Status}}
-    <section class="panel danger-panel" aria-labelledby="delete-app-title">
-      <h2 id="delete-app-title">删除应用</h2>
-      <p class="action-copy">{{if eq .Status "approved"}}删除后会先停用 OIDC Client，依赖此应用的登录也会停止。{{else}}删除后应用资料、回调地址和本地凭证记录将永久移除。{{end}}</p>
-      <details class="danger-disclosure delete-disclosure">
-        <summary>删除此应用</summary>
-        <div>
-          <p>确认删除“{{.Name}}”？此操作无法撤销。</p>
-          <form method="post" action="/connect/apps/{{.ID}}/delete">
-            <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
-            <button class="button button-danger button-wide" type="submit">确认删除应用</button>
-          </form>
-        </div>
-      </details>
+    <section class="panel danger-panel" aria-labelledby="danger-actions-title">
+      <div class="danger-panel-head">
+        <h2 id="danger-actions-title">危险操作</h2>
+        <p class="danger-panel-copy">{{if eq .Status "approved"}}这些操作会影响应用接入，请谨慎执行。{{else}}删除后应用资料、回调地址和本地凭证记录将永久移除。{{end}}</p>
+      </div>
+      <div class="danger-actions">
+        {{if eq .Status "approved"}}
+        <details class="danger-action">
+          <summary class="danger-action-summary">
+            <span class="danger-action-label"><strong>轮换 Secret</strong><small>旧 Secret 会立即失效。</small></span>
+            <span class="danger-action-toggle"><span class="is-closed">展开</span><span class="is-open">收起</span></span>
+          </summary>
+          <div class="danger-action-body">
+            <p>仅在泄露或定期更换时执行。</p>
+            <form method="post" action="/connect/apps/{{.ID}}/rotate-secret">
+              <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
+              <input type="hidden" name="confirmed_at" value="{{$.ConfirmedAt}}">
+              <button class="button button-danger button-wide" type="submit">确认轮换 Secret</button>
+            </form>
+          </div>
+        </details>
+        {{end}}
+        <details class="danger-action">
+          <summary class="danger-action-summary">
+            <span class="danger-action-label"><strong>删除应用</strong><small>删除后无法恢复。</small></span>
+            <span class="danger-action-toggle"><span class="is-closed">展开</span><span class="is-open">收起</span></span>
+          </summary>
+          <div class="danger-action-body">
+            <p>确认删除“{{.Name}}”？此操作无法撤销。</p>
+            <form method="post" action="/connect/apps/{{.ID}}/delete">
+              <input type="hidden" name="csrf_token" value="{{$.Layout.CSRFToken}}">
+              <button class="button button-danger button-wide" type="submit">确认删除应用</button>
+            </form>
+          </div>
+        </details>
+      </div>
     </section>
     {{end}}
 

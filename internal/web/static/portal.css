@@ -524,22 +524,30 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 .action-copy { margin: 8px 0 16px; color: var(--text-2); font-size: 13px; }
 .action-stack { display: grid; gap: var(--space-2); }
 .danger-panel { padding: 16px 20px; }
-.danger-panel h2 { color: var(--danger); }
-.danger-panel .action-copy { margin-bottom: var(--space-2); }
-.delete-disclosure { margin-top: var(--space-2); }
+.danger-panel-head { display: grid; gap: var(--space-1); }
+.danger-panel h2 { margin: 0; color: var(--danger); }
+.danger-panel-copy { margin: 0; color: var(--text-2); font-size: 13px; }
+.danger-actions { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+.danger-action { margin: 0; padding: 0; }
+.danger-action-summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  width: 100%; padding: 0; color: var(--danger); cursor: pointer; list-style: none;
+}
+.danger-action-summary::-webkit-details-marker { display: none; }
+.danger-action-summary::marker { content: ""; }
+.danger-action-label { display: grid; gap: 4px; min-width: 0; }
+.danger-action-label strong { font-size: 13px; font-weight: 500; }
+.danger-action-label small { color: var(--text-3); font-size: 12px; }
+.danger-action-toggle { flex: 0 0 auto; color: var(--danger); font-size: 12px; }
+.danger-action-toggle .is-open { display: none; }
+.danger-action[open] .danger-action-toggle .is-closed { display: none; }
+.danger-action[open] .danger-action-toggle .is-open { display: inline; }
+.danger-action-body { padding-top: var(--space-3); }
+.danger-action-body p { margin: 0 0 var(--space-3); color: var(--text-2); font-size: 12.5px; }
 .progress-note { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-2); font-size: 12.5px; }
 .progress-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
 .progress-dot.is-pulsing { animation: progress-pulse 1.8s ease-in-out infinite; }
 @keyframes progress-pulse { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } }
-
-.danger-disclosure { margin-top: var(--space-4); padding-top: var(--space-4); }
-.danger-disclosure summary {
-  padding: 12px 0 4px; color: var(--danger);
-  cursor: pointer; font-size: 13px; font-weight: 500; list-style-position: outside;
-}
-.danger-disclosure summary::marker { color: var(--danger); }
-.danger-disclosure > div { padding: var(--space-2) 0 4px; }
-.danger-disclosure p { margin: 0 0 var(--space-3); color: var(--text-2); font-size: 12.5px; }
 
 /* 7c. Application form --------------------------------------------------------------- */
 

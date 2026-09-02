@@ -163,6 +163,35 @@ func TestRendererShowsCredentialActionsForApprovedApplication(t *testing.T) {
 	}
 }
 
+func TestRendererGroupsApprovedDangerActionsInTheActionRail(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", map[string]any{
+		"PageTitle":   "应用详情",
+		"ConfirmedAt": int64(1787918400),
+		"Apps":        []domain.Application{{ID: "app_1", Name: "Approved", Status: domain.StatusApproved, ClientID: "client_1"}},
+		"Layout":      Layout{Active: "apps", CSRFToken: "csrf"},
+	})
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, `<section class="panel danger-panel" aria-labelledby="danger-actions-title">`) {
+		t.Fatalf("approved detail is missing the unified danger action panel: %q", body)
+	}
+	if !strings.Contains(body, `class="danger-actions"`) || strings.Count(body, `class="danger-action"`) != 2 {
+		t.Fatalf("approved detail should render rotate and delete as two aligned danger actions: %q", body)
+	}
+	for _, className := range []string{"danger-action-summary", "danger-action-body"} {
+		if !strings.Contains(body, `class="`+className+`"`) {
+			t.Fatalf("approved detail is missing .%s: %q", className, body)
+		}
+	}
+}
+
 func TestRendererEscapesApplicationContentAndSetsSecurityHeaders(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {
