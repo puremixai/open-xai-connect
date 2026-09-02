@@ -1,0 +1,103 @@
+{{template "portal-head" .}}
+<body class="portal-body docs-page">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+
+<header class="portal-topbar">
+  <div class="topbar-inner">
+    <a class="portal-brand" href="/connect/apps">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5l6.3 7L5 19m14-14l-6.3 7L19 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="brand-name">XAI Connect</span>
+    </a>
+    <div class="topbar-actions">
+      <a class="topbar-link" href="/connect/apps">返回控制台</a>
+    </div>
+  </div>
+</header>
+
+<main id="main-content" class="docs-main">
+  <div class="docs-container">
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <a href="/connect/apps">XAI Connect</a>
+      <span aria-hidden="true">/</span>
+      <span>文档</span>
+    </nav>
+
+    <header class="docs-hero">
+      <p class="docs-kicker">DEVELOPER DOCS</p>
+      <h1>XAI Connect 文档</h1>
+      <p class="lead">使用标准 OIDC Authorization Code + PKCE，把 xai.run 登录安全地接入你的服务端应用。</p>
+    </header>
+
+    <div class="docs-layout">
+      <nav class="docs-nav" aria-label="文档章节">
+        <span>本页导航</span>
+        <a href="#接入前提">接入前提</a>
+        <a href="#创建应用并获取凭证">创建应用</a>
+        <a href="#登录流程authorization-code--pkce">登录流程</a>
+        <a href="#安全说明">安全说明</a>
+        <a href="#运维说明">运维说明</a>
+      </nav>
+
+      <article class="panel docs-content">
+        <section id="接入前提">
+          <h2>接入前提</h2>
+          <p>接入项目需要有可信服务端，用于保存 Client Secret、state、nonce、code_verifier 和本地 Session。</p>
+          <ul>
+            <li>回调地址必须是公网可访问的精确 HTTPS URL。</li>
+            <li>纯 SPA、原生移动端和桌面客户端需要增加自己的后端或 BFF。</li>
+            <li>客户端注册使用 <code>client_secret_basic</code>，不支持 <code>client_credentials</code>。</li>
+          </ul>
+        </section>
+
+        <section id="创建应用并获取凭证">
+          <h2>创建应用并获取凭证</h2>
+          <ol>
+            <li>使用 Discourse 账号打开控制台并创建应用。</li>
+            <li>填写应用名称、用途说明、回调地址和已验证域名。</li>
+            <li>应用上线后，在详情页查看 Client ID，并按需确认身份后查看 Client Secret。</li>
+          </ol>
+          <p>Client Secret 只应保存于接入项目服务端的密钥管理系统或受保护环境变量中。</p>
+        </section>
+
+        <section id="登录流程authorization-code--pkce">
+          <h2>登录流程：Authorization Code + PKCE</h2>
+          <p>接入方应优先读取 Discovery，不要在代码中散落硬编码端点。</p>
+          <pre><code>GET https://connect.xai.run/.well-known/openid-configuration
+
+Authorization: https://connect.xai.run/oauth2/auth
+Token:         https://connect.xai.run/oauth2/token
+UserInfo:      https://connect.xai.run/userinfo</code></pre>
+          <ol>
+            <li>服务端生成一次性的 state、nonce 和 code_verifier。</li>
+            <li>浏览器携带 S256 code_challenge 跳转到 Authorization Endpoint。</li>
+            <li>回调后服务端校验 state，用 code 和 verifier 换取 Token。</li>
+            <li>验证 ID Token 的签名、Issuer、Audience、Nonce 和有效期，再建立自己的 Session。</li>
+          </ol>
+        </section>
+
+        <section id="安全说明">
+          <h2>安全说明</h2>
+          <ul>
+            <li>不要把 Client Secret、Access Token、Refresh Token 或 code_verifier 放进浏览器、URL、日志或 Git。</li>
+            <li>不要把 Access Token 当作项目自己的登录 Cookie。</li>
+            <li>严格校验 Issuer、Audience、Nonce、签名算法和 Token 有效期。</li>
+            <li>轮换 Secret 后旧 Secret 会立即失效，应同步更新服务端密钥。</li>
+          </ul>
+        </section>
+
+        <section id="运维说明">
+          <h2>运维说明</h2>
+          <p>生产环境只暴露 HTTPS 入口，PostgreSQL、Redis 和 Hydra 管理端点应留在受控网络内。</p>
+          <p>升级或恢复后检查 <code>/healthz</code>、<code>/readyz</code>、Discovery 和一个测试客户端的 PKCE 流程。</p>
+        </section>
+      </article>
+    </div>
+  </div>
+</main>
+
+<footer class="portal-footer">
+  <span>文档随 XAI Connect 版本更新</span>
+  <a href="/connect/apps">返回应用控制台</a>
+</footer>
+</body>
+</html>

@@ -418,6 +418,31 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 .portal-footer a { color: var(--text-2); text-decoration: none; }
 .portal-footer a:hover { color: var(--accent-text); }
 
+/* Public documentation ----------------------------------------------------- */
+
+.docs-page { min-height: 100dvh; }
+.docs-main { min-width: 0; padding: var(--space-8) var(--space-6) 0; }
+.docs-container { max-width: 1120px; margin: 0 auto; }
+.docs-hero { max-width: 720px; margin: var(--space-8) 0 var(--space-10); }
+.docs-kicker { margin-bottom: var(--space-2); color: var(--text-3); font-size: 12px; font-weight: 600; letter-spacing: .08em; }
+.docs-hero h1 { font-size: 40px; line-height: 48px; }
+.docs-hero .lead { margin-top: var(--space-3); max-width: 60ch; line-height: 24px; }
+.docs-layout { display: grid; grid-template-columns: 192px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
+.docs-nav { position: sticky; top: 88px; display: grid; gap: var(--space-1); align-content: start; }
+.docs-nav > span { margin-bottom: var(--space-2); color: var(--text-3); font-size: 12px; font-weight: 500; }
+.docs-nav a { padding: var(--space-2) var(--space-3); color: var(--text-2); border-radius: var(--radius-sm); font-size: 13px; text-decoration: none; }
+.docs-nav a:hover { color: var(--text); background: var(--surface-hover); }
+.docs-content { min-width: 0; padding: var(--space-8) 40px 40px; }
+.docs-content section + section { margin-top: var(--space-10); }
+.docs-content h2 { margin-bottom: var(--space-3); font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -.03em; }
+.docs-content p { max-width: 68ch; color: var(--text-2); font-size: 13.5px; line-height: 1.7; }
+.docs-content p + p { margin-top: var(--space-3); }
+.docs-content ul, .docs-content ol { display: grid; gap: var(--space-2); max-width: 68ch; margin: var(--space-4) 0 0; padding-left: 20px; color: var(--text-2); font-size: 13.5px; line-height: 1.7; }
+.docs-content li::marker { color: var(--text-3); }
+.docs-content code { padding: 2px 4px; color: var(--text); background: var(--surface-2); border-radius: 4px; font: 12.5px/1.5 var(--mono); }
+.docs-content pre { max-width: 100%; margin: var(--space-4) 0 0; padding: var(--space-4); overflow-x: auto; color: var(--text); background: var(--surface-2); border-radius: var(--radius); box-shadow: var(--shadow-border); }
+.docs-content pre code { padding: 0; background: transparent; font: 12.5px/1.7 var(--mono); white-space: pre; }
+
 /* 7. Page layouts ------------------------------------------------------------ */
 
 /* 7a. Dashboard ---------------------------------------------------------------- */
@@ -881,7 +906,16 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 
 @media (max-width: 720px) {
   .portal-main { padding: 24px 16px 16px; }
-  .page-header { align-items: flex-start; flex-direction: column; gap: var(--space-4); margin-bottom: 20px; }
+  .docs-main { padding: 24px 16px 0; }
+  .docs-hero { margin: var(--space-6) 0 var(--space-8); }
+  .docs-hero h1 { font-size: 32px; line-height: 40px; }
+  .docs-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .docs-nav { position: static; display: flex; align-items: center; gap: var(--space-1); overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
+  .docs-nav > span { flex: 0 0 auto; margin: 0 var(--space-2) 0 0; }
+  .docs-nav a { flex: 0 0 auto; white-space: nowrap; }
+  .docs-content { padding: var(--space-6) 20px 28px; }
+  .docs-content section + section { margin-top: var(--space-8); }
+	.page-header { align-items: flex-start; flex-direction: column; gap: var(--space-4); margin-bottom: 20px; }
   .form-page .breadcrumbs { margin-bottom: var(--space-4); }
   .form-page .page-header { margin-bottom: var(--space-6); }
   .form-page .page-header h1 { font-size: 28px; line-height: 36px; }
