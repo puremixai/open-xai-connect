@@ -56,6 +56,7 @@
 {{define "portal-sidebar"}}
 <aside class="portal-sidebar">
   <nav class="portal-nav" aria-label="主导航">
+    {{if ne .Layout.Active "apps"}}<a class="{{if eq .Layout.Active "home"}}is-active{{end}}" href="/">我的等级</a>{{end}}
     <a class="{{if eq .Layout.Active "apps"}}is-active{{end}}" href="/connect/apps">应用总览</a>
     <a class="{{if eq .Layout.Active "new"}}is-active{{end}}" href="/connect/apps/new">创建应用</a>
     {{if .Layout.IsReviewer}}<a class="{{if eq .Layout.Active "review"}}is-active{{end}}" href="/connect/review">应用审核</a>{{end}}

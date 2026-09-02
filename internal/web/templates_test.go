@@ -42,6 +42,23 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 	}
 }
 
+func TestRendererHidesLevelNavigationOnApplicationOverview(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	if err := renderer.Render(response, "app-list", map[string]any{
+		"Apps":   []domain.Application{},
+		"Layout": Layout{Active: "apps"},
+	}); err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	if strings.Contains(response.Body.String(), `href="/">我的等级</a>`) {
+		t.Fatalf("application overview must not show the level navigation link: %q", response.Body.String())
+	}
+}
+
 func TestRendererUsesOneLinkForEachApplicationRow(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {
