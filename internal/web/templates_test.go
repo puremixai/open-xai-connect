@@ -37,6 +37,46 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 	}
 }
 
+func TestRendererScopesConsentFormActionToValidatedCallbackOrigins(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	redirectURIs := []string{
+		"https://mail.example/auth/callback",
+		"https://MAIL.EXAMPLE/other",
+		"https://portal.example:8443/callback",
+		"http://insecure.example/callback",
+		"https://localhost/callback",
+		"https://127.0.0.1/callback",
+		"https://user:pass@evil.example/callback",
+		"https://evil.example/callback?next=1",
+		"https://evil.example/callback#fragment",
+		"https://*.evil.example/callback",
+	}
+	consent := httptest.NewRecorder()
+	if err := renderer.RenderWithFormAction(consent, "consent", map[string]any{
+		"Client": map[string]any{"Name": "Example"}, "Scopes": []string{"openid"},
+		"Action": "/connect/consent", "CSRFToken": "csrf",
+	}, redirectURIs); err != nil {
+		t.Fatalf("RenderWithFormAction(consent) error = %v", err)
+	}
+	want := "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://mail.example https://portal.example:8443"
+	if csp := consent.Header().Get("Content-Security-Policy"); csp != want {
+		t.Fatalf("consent CSP = %q, want %q", csp, want)
+	}
+
+	errorPage := httptest.NewRecorder()
+	if err := renderer.RenderWithFormAction(errorPage, "error", map[string]any{
+		"Title": "Error", "Message": "Denied", "Back": "/",
+	}, redirectURIs); err != nil {
+		t.Fatalf("RenderWithFormAction(error) error = %v", err)
+	}
+	if csp := errorPage.Header().Get("Content-Security-Policy"); strings.Contains(csp, "mail.example") || strings.Contains(csp, "portal.example") {
+		t.Fatalf("non-consent CSP leaked callback origins: %q", csp)
+	}
+}
+
 func TestRendererShowsProvisioningActionForExistingDraft(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {

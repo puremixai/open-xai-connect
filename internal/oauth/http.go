@@ -62,11 +62,11 @@ func (h *ConsentHTTPHandler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == http.MethodGet {
-		h.render(w, "consent", map[string]any{
+		h.renderWithFormAction(w, "consent", map[string]any{
 			"Client": request.Client, "Scopes": request.RequestedScope,
 			"Action":    "/connect/consent?consent_challenge=" + url.QueryEscape(challenge),
 			"CSRFToken": h.csrfToken(r),
-		})
+		}, request.Client.RedirectURIs)
 		return
 	}
 	if r.Method != http.MethodPost {
@@ -129,6 +129,16 @@ func (h *ConsentHTTPHandler) render(w http.ResponseWriter, name string, data any
 		return
 	}
 	if err := h.renderer.Render(w, name, data); err != nil {
+		http.Error(w, "template render failed", http.StatusInternalServerError)
+	}
+}
+
+func (h *ConsentHTTPHandler) renderWithFormAction(w http.ResponseWriter, name string, data any, redirectURIs []string) {
+	if h.renderer == nil {
+		http.Error(w, "template service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if err := h.renderer.RenderWithFormAction(w, name, data, redirectURIs); err != nil {
 		http.Error(w, "template render failed", http.StatusInternalServerError)
 	}
 }

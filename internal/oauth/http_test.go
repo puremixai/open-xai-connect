@@ -25,7 +25,9 @@ func (consentStatus) CurrentStatus(context.Context, string) (identity.StatusSnap
 func TestConsentHTTPHandlerRendersAndAccepts(t *testing.T) {
 	h := hydra.NewFake()
 	h.Consent = hydra.ConsentRequest{
-		Challenge: "consent-1", Subject: "usr_1", Client: hydra.ClientInfo{ID: "client-1", Name: "Example"},
+		Challenge: "consent-1", Subject: "usr_1", Client: hydra.ClientInfo{
+			ID: "client-1", Name: "Example", RedirectURIs: []string{"https://mail.example/auth/callback"},
+		},
 		RequestedScope: []string{"openid", "profile"},
 	}
 	apps := memory.NewApplicationRepository()
@@ -58,6 +60,9 @@ func TestConsentHTTPHandlerRendersAndAccepts(t *testing.T) {
 	handler.handle(getResponse, get)
 	if getResponse.Code != http.StatusOK || !strings.Contains(getResponse.Body.String(), "Example") {
 		t.Fatalf("GET status/body = %d/%q", getResponse.Code, getResponse.Body.String())
+	}
+	if csp := getResponse.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self' https://mail.example") {
+		t.Fatalf("GET CSP = %q, want approved callback origin", csp)
 	}
 	sid, _ := sessions.SessionID(get)
 	token, _ := csrf.Token(sid)
