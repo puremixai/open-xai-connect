@@ -4,8 +4,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"connect.xai.run/internal/domain"
+	"connect.xai.run/internal/identity"
 )
 
 func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
@@ -65,6 +67,193 @@ func TestRendererUsesOneLinkForEachApplicationRow(t *testing.T) {
 	if !strings.Contains(body, `class="app-row-link"`) ||
 		!strings.Contains(body, `aria-label="查看 Example App 详情"`) {
 		t.Fatalf("application row is missing its labelled full-row link: %q", body)
+	}
+}
+
+func TestRendererShowsAutomaticLevelProgressOnHomepage(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		PromotionMode: "automatic",
+		Requirements: []identity.LevelRequirement{
+			{Key: "days_visited", Label: "访问天数", Group: "activity", Scope: "rolling_period", PeriodDays: intPtr(100), Current: 40, Target: 50, Operator: "at_least", Unit: "days", Met: false},
+			{Key: "likes_received", Label: "获得点赞", Group: "interaction", Scope: "rolling_period", PeriodDays: intPtr(100), Current: 35, Target: 30, Operator: "at_least", Unit: "count", Met: true},
+		},
+		BlockingConditions: []identity.LevelBlockingCondition{
+			{Key: "not_silenced", Label: "账号未被禁言", Met: true},
+		},
+		GeneratedAt: time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	for _, expected := range []string{
+		"用户等级进度",
+		"当前等级",
+		"目标等级",
+		"达到目标等级的条件",
+		"访问天数",
+		"40 / 50 天",
+		"成员",
+		"常规",
+		"活跃程度",
+		"互动参与",
+		"账号未被禁言",
+		"未达成",
+		"已达成",
+		"按最近 100 天数据计算",
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("automatic level progress missing %q in %q", expected, body)
+		}
+	}
+	if !strings.Contains(body, "<progress") {
+		t.Fatalf("automatic level progress should use native progress markup: %q", body)
+	}
+}
+
+func TestRendererShowsAtMostLevelRequirementAsText(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		PromotionMode: "automatic",
+		Requirements: []identity.LevelRequirement{
+			{Key: "flagged_posts", Label: "被确认举报的帖子", Group: "compliance", Scope: "rolling_period", PeriodDays: intPtr(100), Current: 3, Target: 5, Operator: "at_most", Unit: "count", Met: true},
+		},
+		GeneratedAt: time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	for _, expected := range []string{
+		"被确认举报的帖子",
+		"当前 3 项，不超过 5 项",
+		"合规与账号状态",
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("at_most level requirement missing %q in %q", expected, body)
+		}
+	}
+	if strings.Contains(body, `<progress`) {
+		t.Fatalf("at_most requirement should not render a progress bar: %q", body)
+	}
+}
+
+func TestRendererShowsManualLevelProgressState(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		NextLevel:     &identity.LevelInfo{ID: 4, Key: "leader", Label: "领导者"},
+		PromotionMode: "manual",
+		GeneratedAt:   time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, "目标等级 4 需管理员授予") {
+		t.Fatalf("manual level progress message missing in %q", body)
+	}
+	if strings.Contains(body, `<progress`) {
+		t.Fatalf("manual level progress should not render an empty progress bar: %q", body)
+	}
+}
+
+func TestRendererShowsTerminalAndLockedLevelStates(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+
+	maxResponse := httptest.NewRecorder()
+	err = renderer.Render(maxResponse, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 4, Key: "leader", Label: "领导者"},
+		PromotionMode: "none",
+		GeneratedAt:   time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("Render(max) error = %v", err)
+	}
+	if !strings.Contains(maxResponse.Body.String(), "当前已是最高等级") {
+		t.Fatalf("terminal level progress message missing in %q", maxResponse.Body.String())
+	}
+
+	lockedResponse := httptest.NewRecorder()
+	err = renderer.Render(lockedResponse, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		PromotionMode: "locked",
+		BlockingConditions: []identity.LevelBlockingCondition{
+			{Key: "manual_locked", Label: "当前等级已被锁定", Met: false},
+		},
+		GeneratedAt: time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("Render(locked) error = %v", err)
+	}
+	lockedBody := lockedResponse.Body.String()
+	for _, expected := range []string{"当前等级已被锁定", "暂不能自动升级"} {
+		if !strings.Contains(lockedBody, expected) {
+			t.Fatalf("locked level progress missing %q in %q", expected, lockedBody)
+		}
+	}
+}
+
+func TestRendererShowsNilLevelProgressFallbackWithoutBreakingHomepage(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", homepageRenderData(nil))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	for _, expected := range []string{"等级条件暂时无法同步", "workspace-grid", "app-table", "onboarding-list"} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("nil level progress is missing %q in %q", expected, body)
+		}
+	}
+}
+
+func TestRendererEscapesLevelProgressLabels(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		PromotionMode: "automatic",
+		Requirements: []identity.LevelRequirement{
+			{Key: "scripted", Label: `<script>alert(1)</script>`, Group: "activity", Scope: "rolling_period", PeriodDays: intPtr(30), Current: 1, Target: 2, Operator: "at_least", Unit: "count", Met: false},
+		},
+		GeneratedAt: time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	if strings.Contains(body, `<script>alert(1)</script>`) || !strings.Contains(body, `&lt;script&gt;alert(1)&lt;/script&gt;`) {
+		t.Fatalf("level progress labels are not escaped: %q", body)
 	}
 }
 
@@ -239,4 +428,21 @@ func TestRendererCanSetNonSuccessStatusBeforeRendering(t *testing.T) {
 	if response.Code != 403 {
 		t.Fatalf("status = %d", response.Code)
 	}
+}
+
+func homepageRenderData(levelProgress *identity.LevelProgressSnapshot) map[string]any {
+	return map[string]any{
+		"Apps": []domain.Application{{
+			ID:          "app_1",
+			Name:        "Example App",
+			Description: "Example description",
+			Status:      domain.StatusApproved,
+		}},
+		"Layout":        Layout{Active: "apps", DisplayName: "Portal User"},
+		"LevelProgress": levelProgress,
+	}
+}
+
+func intPtr(value int) *int {
+	return &value
 }

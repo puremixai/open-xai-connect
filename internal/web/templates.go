@@ -3,6 +3,7 @@ package web
 import (
 	"embed"
 	"errors"
+	"fmt"
 	"html/template"
 	"net"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"connect.xai.run/internal/domain"
+	"connect.xai.run/internal/identity"
 )
 
 //go:embed templates/*.html
@@ -24,23 +26,39 @@ type Renderer struct {
 
 func NewRenderer() (*Renderer, error) {
 	parsed, err := template.New("connect").Funcs(template.FuncMap{
-		"statusLabel": statusLabel,
-		"statusTone":  statusTone,
-		"countStatus": countStatus,
-		"countOpen":   countOpen,
-		"add":         add,
-		"canSubmit":   canSubmit,
-		"canEdit":     canEdit,
-		"canDelete":   canDelete,
-		"formatTime":  formatTime,
-		"truncate":    truncate,
-		"appInitial":  appInitial,
-		"assetURL":    AssetURL,
+		"statusLabel":            statusLabel,
+		"statusTone":             statusTone,
+		"countStatus":            countStatus,
+		"countOpen":              countOpen,
+		"add":                    add,
+		"canSubmit":              canSubmit,
+		"canEdit":                canEdit,
+		"canDelete":              canDelete,
+		"formatTime":             formatTime,
+		"truncate":               truncate,
+		"appInitial":             appInitial,
+		"assetURL":               AssetURL,
+		"levelRequirementGroups": levelRequirementGroups,
+		"levelGroupLabel":        levelGroupLabel,
+		"requirementOperator":    requirementOperator,
+		"requirementUnit":        requirementUnit,
+		"requirementStatusLabel": requirementStatusLabel,
+		"blockingStatusLabel":    blockingStatusLabel,
+		"promotionModeLabel":     promotionModeLabel,
+		"requirementScopeHint":   requirementScopeHint,
+		"requirementsMet":        requirementsMet,
+		"progressValue":          progressValue,
+		"progressMax":            progressMax,
 	}).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
 	return &Renderer{templates: parsed}, nil
+}
+
+type levelRequirementGroup struct {
+	Key          string
+	Requirements []identity.LevelRequirement
 }
 
 func statusLabel(status domain.ApplicationStatus) string {
@@ -145,6 +163,134 @@ func appInitial(value string) string {
 		return "A"
 	}
 	return string(runes[0])
+}
+
+func levelRequirementGroups(requirements []identity.LevelRequirement) []levelRequirementGroup {
+	groups := make([]levelRequirementGroup, 0, len(requirements))
+	indexByKey := make(map[string]int, len(requirements))
+	for _, requirement := range requirements {
+		key := strings.TrimSpace(requirement.Group)
+		if key == "" {
+			key = "other"
+		}
+		if index, ok := indexByKey[key]; ok {
+			groups[index].Requirements = append(groups[index].Requirements, requirement)
+			continue
+		}
+		indexByKey[key] = len(groups)
+		groups = append(groups, levelRequirementGroup{
+			Key:          key,
+			Requirements: []identity.LevelRequirement{requirement},
+		})
+	}
+	return groups
+}
+
+func levelGroupLabel(group string) string {
+	switch strings.TrimSpace(group) {
+	case "activity":
+		return "活跃程度"
+	case "interaction":
+		return "互动参与"
+	case "compliance":
+		return "合规与账号状态"
+	case "":
+		return "其他条件"
+	default:
+		return group
+	}
+}
+
+func requirementOperator(operator string) string {
+	switch strings.TrimSpace(operator) {
+	case "at_least":
+		return "至少"
+	case "at_most":
+		return "不超过"
+	case "equals":
+		return "等于"
+	default:
+		return operator
+	}
+}
+
+func requirementUnit(unit string) string {
+	switch strings.TrimSpace(unit) {
+	case "count":
+		return "项"
+	case "days":
+		return "天"
+	case "minutes":
+		return "分钟"
+	default:
+		return unit
+	}
+}
+
+func requirementStatusLabel(met bool) string {
+	if met {
+		return "已达成"
+	}
+	return "未达成"
+}
+
+func blockingStatusLabel(met bool) string {
+	if met {
+		return "已满足"
+	}
+	return "未满足"
+}
+
+func promotionModeLabel(mode string) string {
+	switch strings.TrimSpace(mode) {
+	case "automatic":
+		return "自动升级"
+	case "manual":
+		return "管理员授予"
+	case "locked":
+		return "等级锁定"
+	case "none":
+		return "已满级"
+	default:
+		return mode
+	}
+}
+
+func requirementScopeHint(requirement identity.LevelRequirement) string {
+	switch requirement.Scope {
+	case "rolling_period":
+		if requirement.PeriodDays != nil {
+			return fmt.Sprintf("按最近 %d 天数据计算", *requirement.PeriodDays)
+		}
+		return "按最近周期数据计算"
+	case "account_lifetime":
+		return "按账号累计数据计算"
+	case "all_time":
+		return "按全站累计数据计算"
+	default:
+		return ""
+	}
+}
+
+func requirementsMet(value *bool) bool {
+	return value != nil && *value
+}
+
+func progressValue(current, target int64) int64 {
+	if target <= 0 || current <= 0 {
+		return 0
+	}
+	if current > target {
+		return target
+	}
+	return current
+}
+
+func progressMax(target int64) int64 {
+	if target <= 0 {
+		return 1
+	}
+	return target
 }
 
 func (r *Renderer) Render(w http.ResponseWriter, name string, data any) error {
