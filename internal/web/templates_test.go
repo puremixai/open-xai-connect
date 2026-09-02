@@ -192,6 +192,25 @@ func TestRendererGroupsApprovedDangerActionsInTheActionRail(t *testing.T) {
 	}
 }
 
+func TestPortalTemplatesUseInternalDocsLinks(t *testing.T) {
+	for _, filename := range []string{
+		"app-form.html", "app-list.html", "admin-overview.html",
+		"layout.html", "review-queue.html", "secret.html",
+	} {
+		body, err := templateFS.ReadFile("templates/" + filename)
+		if err != nil {
+			t.Fatalf("read %s: %v", filename, err)
+		}
+		content := string(body)
+		if strings.Contains(content, "github.com/puremixai/xai-connect") {
+			t.Fatalf("%s still points documentation to GitHub", filename)
+		}
+		if !strings.Contains(content, `href="/docs`) {
+			t.Fatalf("%s is missing an internal /docs link", filename)
+		}
+	}
+}
+
 func TestRendererEscapesApplicationContentAndSetsSecurityHeaders(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {
