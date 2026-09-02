@@ -20,27 +20,34 @@ type AssetStore interface {
 	Save(context.Context, string, []byte, string) (string, error)
 }
 
+type pageRenderer interface {
+	Render(http.ResponseWriter, string, any) error
+	RenderStatus(http.ResponseWriter, int, string, any) error
+}
+
 type HTTPDependencies struct {
-	Service  *Service
-	Status   identity.StatusLookup
-	Sessions *session.HTTPHandler
-	CSRF     *session.CSRF
-	Renderer *web.Renderer
-	Assets   AssetStore
+	Service       *Service
+	Status        identity.StatusLookup
+	LevelProgress identity.LevelProgressLookup
+	Sessions      *session.HTTPHandler
+	CSRF          *session.CSRF
+	Renderer      pageRenderer
+	Assets        AssetStore
 }
 
 type HTTPHandler struct {
-	service  *Service
-	status   identity.StatusLookup
-	sessions *session.HTTPHandler
-	csrf     *session.CSRF
-	renderer *web.Renderer
-	assets   AssetStore
+	service       *Service
+	status        identity.StatusLookup
+	levelProgress identity.LevelProgressLookup
+	sessions      *session.HTTPHandler
+	csrf          *session.CSRF
+	renderer      pageRenderer
+	assets        AssetStore
 }
 
 func NewHTTPHandler(deps HTTPDependencies) *HTTPHandler {
 	return &HTTPHandler{
-		service: deps.Service, status: deps.Status, sessions: deps.Sessions, csrf: deps.CSRF,
+		service: deps.Service, status: deps.Status, levelProgress: deps.LevelProgress, sessions: deps.Sessions, csrf: deps.CSRF,
 		renderer: deps.Renderer, assets: deps.Assets,
 	}
 }
@@ -78,8 +85,14 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, http.StatusInternalServerError, "无法读取应用", err.Error())
 		return
 	}
+	var levelProgress *identity.LevelProgressSnapshot
+	if h.levelProgress != nil {
+		if snapshot, err := h.levelProgress.CurrentLevelProgress(r.Context(), subject); err == nil {
+			levelProgress = &snapshot
+		}
+	}
 	h.render(w, "app-list", map[string]any{
-		"Apps": apps, "PageTitle": "应用总览", "Layout": h.layoutFor(r, subject, "apps"),
+		"Apps": apps, "PageTitle": "应用总览", "Layout": h.layoutFor(r, subject, "apps"), "LevelProgress": levelProgress,
 	})
 }
 

@@ -1,6 +1,7 @@
 package apps
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +14,49 @@ import (
 	"connect.xai.run/internal/session"
 	"connect.xai.run/internal/web"
 )
+
+type fakeLevelProgressLookup struct {
+	snapshot identity.LevelProgressSnapshot
+	err      error
+	calls    int
+	subjects []string
+}
+
+func (f *fakeLevelProgressLookup) CurrentLevelProgress(_ context.Context, subject string) (identity.LevelProgressSnapshot, error) {
+	f.calls++
+	f.subjects = append(f.subjects, subject)
+	return f.snapshot, f.err
+}
+
+type renderCall struct {
+	name string
+	data map[string]any
+}
+
+type spyRenderer struct {
+	lastRender *renderCall
+}
+
+func (s *spyRenderer) Render(w http.ResponseWriter, name string, data any) error {
+	renderData, ok := data.(map[string]any)
+	if !ok {
+		return nil
+	}
+	s.lastRender = &renderCall{name: name, data: renderData}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("rendered"))
+	return nil
+}
+
+func (s *spyRenderer) RenderStatus(w http.ResponseWriter, status int, name string, data any) error {
+	renderData, ok := data.(map[string]any)
+	if ok {
+		s.lastRender = &renderCall{name: name, data: renderData}
+	}
+	w.WriteHeader(status)
+	return nil
+}
 
 func TestHTTPHandlerProtectsAppCreationWithSessionAndCSRF(t *testing.T) {
 	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
@@ -163,4 +207,153 @@ func TestHTTPHandlerAllowsOwnerToEditAnUnpublishedApplication(t *testing.T) {
 	if _, err := repo.Get(nil, app.ID); err == nil {
 		t.Fatal("deleted application is still present")
 	}
+}
+
+func TestHTTPHandlerLoadsLevelProgressForHomepage(t *testing.T) {
+	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	if _, err := service.CreateDraft(context.Background(), "sub_1", validDraftInput()); err != nil {
+		t.Fatalf("CreateDraft() error = %v", err)
+	}
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	csrf, err := session.NewCSRF([]byte("csrf-secret-012345"))
+	if err != nil {
+		t.Fatalf("NewCSRF() error = %v", err)
+	}
+	progress := &fakeLevelProgressLookup{
+		snapshot: identity.LevelProgressSnapshot{
+			SchemaVersion: 1,
+			DiscourseID:   42,
+			CurrentLevel:  identity.LevelInfo{ID: 1, Key: "basic", Label: "基础用户"},
+			NextLevel:     &identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+			PromotionMode: "automatic",
+			RequirementsMet: func() *bool {
+				value := false
+				return &value
+			}(),
+			GeneratedAt: time.Date(2026, 9, 2, 8, 0, 0, 0, time.UTC),
+		},
+	}
+	renderer := &spyRenderer{}
+	handler := NewHTTPHandler(HTTPDependencies{
+		Service: service, Status: appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+	})
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, handler)
+
+	request := authenticatedRequest(t, sessions, "/connect/apps")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("homepage status = %d, body = %q", response.Code, response.Body.String())
+	}
+	if progress.calls != 1 {
+		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)
+	}
+	if len(progress.subjects) != 1 || progress.subjects[0] != "sub_1" {
+		t.Fatalf("CurrentLevelProgress() subjects = %#v", progress.subjects)
+	}
+	if renderer.lastRender == nil || renderer.lastRender.name != "app-list" {
+		t.Fatalf("render = %#v", renderer.lastRender)
+	}
+	levelProgress, ok := renderer.lastRender.data["LevelProgress"].(*identity.LevelProgressSnapshot)
+	if !ok || levelProgress == nil {
+		t.Fatalf("LevelProgress render data = %#v", renderer.lastRender.data["LevelProgress"])
+	}
+	if levelProgress.CurrentLevel.Label != "基础用户" || levelProgress.NextLevel == nil || levelProgress.NextLevel.Label != "成员" {
+		t.Fatalf("LevelProgress snapshot = %#v", levelProgress)
+	}
+}
+
+func TestHTTPHandlerDegradesWhenLevelProgressLookupFails(t *testing.T) {
+	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	if _, err := service.CreateDraft(context.Background(), "sub_1", validDraftInput()); err != nil {
+		t.Fatalf("CreateDraft() error = %v", err)
+	}
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	csrf, err := session.NewCSRF([]byte("csrf-secret-012345"))
+	if err != nil {
+		t.Fatalf("NewCSRF() error = %v", err)
+	}
+	progress := &fakeLevelProgressLookup{err: context.DeadlineExceeded}
+	renderer := &spyRenderer{}
+	handler := NewHTTPHandler(HTTPDependencies{
+		Service: service, Status: appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+	})
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, handler)
+
+	request := authenticatedRequest(t, sessions, "/connect/apps")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("homepage status = %d, body = %q", response.Code, response.Body.String())
+	}
+	if progress.calls != 1 {
+		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)
+	}
+	if renderer.lastRender == nil || renderer.lastRender.name != "app-list" {
+		t.Fatalf("render = %#v", renderer.lastRender)
+	}
+	levelProgress, ok := renderer.lastRender.data["LevelProgress"].(*identity.LevelProgressSnapshot)
+	if !ok {
+		t.Fatalf("LevelProgress render data type = %T", renderer.lastRender.data["LevelProgress"])
+	}
+	if levelProgress != nil {
+		t.Fatalf("LevelProgress render data = %#v, want nil", levelProgress)
+	}
+	apps, ok := renderer.lastRender.data["Apps"].([]domain.Application)
+	if !ok || len(apps) != 1 {
+		t.Fatalf("Apps render data = %#v", renderer.lastRender.data["Apps"])
+	}
+}
+
+func TestHTTPHandlerDoesNotLoadLevelProgressForAppDetail(t *testing.T) {
+	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	app, err := service.CreateDraft(context.Background(), "sub_1", validDraftInput())
+	if err != nil {
+		t.Fatalf("CreateDraft() error = %v", err)
+	}
+	renderer, err := web.NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	csrf, err := session.NewCSRF([]byte("csrf-secret-012345"))
+	if err != nil {
+		t.Fatalf("NewCSRF() error = %v", err)
+	}
+	progress := &fakeLevelProgressLookup{}
+	handler := NewHTTPHandler(HTTPDependencies{
+		Service: service, Status: appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+	})
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, handler)
+
+	request := authenticatedRequest(t, sessions, "/connect/apps/"+string(app.ID))
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("detail status = %d, body = %q", response.Code, response.Body.String())
+	}
+	if progress.calls != 0 {
+		t.Fatalf("CurrentLevelProgress() calls = %d, want 0", progress.calls)
+	}
+}
+
+func authenticatedRequest(t *testing.T, sessions *session.HTTPHandler, target string) *http.Request {
+	t.Helper()
+	loginResponse := httptest.NewRecorder()
+	loginRequest := httptest.NewRequest(http.MethodGet, "/connect/callback", nil)
+	if _, err := sessions.Establish(loginResponse, loginRequest, "sub_1"); err != nil {
+		t.Fatalf("seed session: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodGet, target, nil)
+	request.AddCookie(loginResponse.Result().Cookies()[0])
+	return request
 }

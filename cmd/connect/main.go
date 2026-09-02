@@ -207,9 +207,8 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 	}
 
 	identityEvents := identity.NewEventConsumer(verifier, db, eventIDs, levelProgressCache)
-	_ = levelProgress
 	appHTTP := apps.NewHTTPHandler(apps.HTTPDependencies{
-		Service: appService, Status: status, Sessions: sessions, CSRF: csrf, Renderer: renderer, Assets: assetStore,
+		Service: appService, Status: status, LevelProgress: levelProgress, Sessions: sessions, CSRF: csrf, Renderer: renderer, Assets: assetStore,
 	})
 	reviewHTTP := reviews.NewHTTPHandler(reviews.HTTPDependencies{
 		Service: reviewService, Status: status, Sessions: sessions, CSRF: csrf, Renderer: renderer,
