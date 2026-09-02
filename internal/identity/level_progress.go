@@ -150,6 +150,9 @@ func (s LevelProgressSnapshot) ValidateFor(discourseID int64) error {
 		if s.NextLevel != nil {
 			return errors.New("level 4 must not include next_level")
 		}
+		if s.PromotionMode != "none" {
+			return errors.New("level 4 must use none promotion mode")
+		}
 		return nil
 	}
 	if s.NextLevel == nil {
@@ -158,8 +161,12 @@ func (s LevelProgressSnapshot) ValidateFor(discourseID int64) error {
 	if s.NextLevel.ID != s.CurrentLevel.ID+1 {
 		return fmt.Errorf("next level id %d does not match current level %d", s.NextLevel.ID, s.CurrentLevel.ID)
 	}
-	if s.CurrentLevel.ID == 3 && s.NextLevel.ID == 4 && s.PromotionMode != "manual" {
-		return errors.New("level 3 to 4 promotion must use manual promotion mode")
+	if s.CurrentLevel.ID == 3 {
+		if s.PromotionMode != "manual" && s.PromotionMode != "locked" {
+			return errors.New("level 3 to 4 promotion must use manual or locked promotion mode")
+		}
+	} else if s.PromotionMode != "automatic" && s.PromotionMode != "locked" {
+		return fmt.Errorf("level %d to %d promotion must use automatic or locked promotion mode", s.CurrentLevel.ID, s.NextLevel.ID)
 	}
 	if err := validateLevelInfo(*s.NextLevel); err != nil {
 		return fmt.Errorf("invalid next level: %w", err)

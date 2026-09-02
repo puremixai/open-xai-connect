@@ -274,6 +274,22 @@ RSpec.describe "Connect identity bridge", type: :request do
     expect(json.fetch("blocking_conditions")).to eq([])
   end
 
+  it "returns locked promotion metadata for a manually locked level three user" do
+    user = Fabricate(:user, trust_level: 3, manual_locked_trust_level: 3)
+
+    path = level_progress_path(user)
+    get path, headers: signed_headers("GET", path)
+
+    expect(response).to have_http_status(:ok)
+    json = response.parsed_body
+    expect(json.fetch("current_level").fetch("id")).to eq(3)
+    expect(json.fetch("next_level").fetch("id")).to eq(4)
+    expect(json.fetch("promotion_mode")).to eq("locked")
+    expect(json.fetch("requirements_met")).to be_nil
+    expect(json.fetch("requirements")).to eq([])
+    expect(blocking_condition_map(json).fetch("not_manually_locked")).to include("met" => false)
+  end
+
   it "returns no next level for level four users" do
     user = Fabricate(:user, trust_level: 4)
 

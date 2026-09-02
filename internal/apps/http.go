@@ -76,6 +76,7 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store")
 	if h.service == nil {
 		h.fail(w, http.StatusServiceUnavailable, "服务未配置", "应用服务未配置")
 		return

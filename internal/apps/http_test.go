@@ -254,6 +254,9 @@ func TestHTTPHandlerLoadsLevelProgressForHomepage(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("homepage status = %d, body = %q", response.Code, response.Body.String())
 	}
+	if got := response.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", got)
+	}
 	if progress.calls != 1 {
 		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)
 	}
@@ -303,6 +306,9 @@ func TestHTTPHandlerDegradesWhenLevelProgressLookupFails(t *testing.T) {
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("homepage status = %d, body = %q", response.Code, response.Body.String())
+	}
+	if got := response.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", got)
 	}
 	if progress.calls != 1 {
 		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)

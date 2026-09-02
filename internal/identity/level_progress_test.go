@@ -71,14 +71,22 @@ func TestLevelProgressSnapshotValidateFor(t *testing.T) {
 			wantErr: "unknown promotion mode",
 		},
 		{
-			name: "tl3 to tl4 requires manual promotion",
+			name: "tl3 to tl4 rejects automatic promotion",
 			mutate: func(s *LevelProgressSnapshot) {
 				s.CurrentLevel = LevelInfo{ID: 3, Key: "pro", Label: "进阶用户"}
 				s.NextLevel = &LevelInfo{ID: 4, Key: "expert", Label: "专家用户"}
 				s.PromotionMode = "automatic"
 				s.RequirementsMet = boolPtr(false)
 			},
-			wantErr: "must use manual promotion mode",
+			wantErr: "must use manual or locked promotion mode",
+		},
+		{
+			name: "manual promotion on automatic transition",
+			mutate: func(s *LevelProgressSnapshot) {
+				s.PromotionMode = "manual"
+				s.RequirementsMet = nil
+			},
+			wantErr: "must use automatic or locked promotion mode",
 		},
 		{
 			name:    "automatic without requirements met",
@@ -163,6 +171,17 @@ func TestLevelProgressSnapshotValidateForRejectsNextLevelOnLevel4(t *testing.T) 
 	}
 }
 
+func TestLevelProgressSnapshotValidateForLevel4RequiresNonePromotion(t *testing.T) {
+	snapshot := validLevelProgressSnapshot()
+	snapshot.CurrentLevel = LevelInfo{ID: 4, Key: "expert", Label: "专家用户"}
+	snapshot.NextLevel = nil
+	snapshot.PromotionMode = "locked"
+	snapshot.RequirementsMet = nil
+	if err := snapshot.ValidateFor(42); err == nil || !strings.Contains(err.Error(), "level 4 must use none promotion mode") {
+		t.Fatalf("ValidateFor() error = %v", err)
+	}
+}
+
 func TestLevelProgressSnapshotValidateForAllowsManualTl3ToTl4(t *testing.T) {
 	snapshot := validLevelProgressSnapshot()
 	snapshot.CurrentLevel = LevelInfo{ID: 3, Key: "pro", Label: "进阶用户"}
@@ -171,5 +190,37 @@ func TestLevelProgressSnapshotValidateForAllowsManualTl3ToTl4(t *testing.T) {
 	snapshot.RequirementsMet = nil
 	if err := snapshot.ValidateFor(42); err != nil {
 		t.Fatalf("ValidateFor() error = %v", err)
+	}
+}
+
+func TestLevelProgressSnapshotValidateForAllowsLockedNonTerminalTransitions(t *testing.T) {
+	tests := []struct {
+		name    string
+		current LevelInfo
+		next    LevelInfo
+	}{
+		{
+			name:    "locked tl2 to tl3",
+			current: LevelInfo{ID: 2, Key: "member", Label: "成员"},
+			next:    LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		},
+		{
+			name:    "locked tl3 to tl4",
+			current: LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+			next:    LevelInfo{ID: 4, Key: "leader", Label: "领袖"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			snapshot := validLevelProgressSnapshot()
+			snapshot.CurrentLevel = tt.current
+			snapshot.NextLevel = &tt.next
+			snapshot.PromotionMode = "locked"
+			snapshot.RequirementsMet = nil
+			if err := snapshot.ValidateFor(42); err != nil {
+				t.Fatalf("ValidateFor() error = %v", err)
+			}
+		})
 	}
 }
