@@ -33,29 +33,35 @@ type renderCall struct {
 	data map[string]any
 }
 
-type spyRenderer struct {
+type captureRenderer struct {
+	base       pageRenderer
 	lastRender *renderCall
 }
 
-func (s *spyRenderer) Render(w http.ResponseWriter, name string, data any) error {
-	renderData, ok := data.(map[string]any)
-	if !ok {
-		return nil
-	}
-	s.lastRender = &renderCall{name: name, data: renderData}
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("rendered"))
-	return nil
-}
-
-func (s *spyRenderer) RenderStatus(w http.ResponseWriter, status int, name string, data any) error {
+func (s *captureRenderer) Render(w http.ResponseWriter, name string, data any) error {
 	renderData, ok := data.(map[string]any)
 	if ok {
 		s.lastRender = &renderCall{name: name, data: renderData}
 	}
-	w.WriteHeader(status)
-	return nil
+	if s.base == nil {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("rendered"))
+		return nil
+	}
+	return s.base.Render(w, name, data)
+}
+
+func (s *captureRenderer) RenderStatus(w http.ResponseWriter, status int, name string, data any) error {
+	renderData, ok := data.(map[string]any)
+	if ok {
+		s.lastRender = &renderCall{name: name, data: renderData}
+	}
+	if s.base == nil {
+		w.WriteHeader(status)
+		return nil
+	}
+	return s.base.RenderStatus(w, status, name, data)
 }
 
 func TestHTTPHandlerProtectsAppCreationWithSessionAndCSRF(t *testing.T) {
@@ -233,7 +239,7 @@ func TestHTTPHandlerLoadsLevelProgressForHomepage(t *testing.T) {
 			GeneratedAt: time.Date(2026, 9, 2, 8, 0, 0, 0, time.UTC),
 		},
 	}
-	renderer := &spyRenderer{}
+	renderer := &captureRenderer{}
 	handler := NewHTTPHandler(HTTPDependencies{
 		Service: service, Status: appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
 		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
@@ -268,7 +274,9 @@ func TestHTTPHandlerLoadsLevelProgressForHomepage(t *testing.T) {
 
 func TestHTTPHandlerDegradesWhenLevelProgressLookupFails(t *testing.T) {
 	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
-	if _, err := service.CreateDraft(context.Background(), "sub_1", validDraftInput()); err != nil {
+	input := validDraftInput()
+	input.Name = "Regression Example"
+	if _, err := service.CreateDraft(context.Background(), "sub_1", input); err != nil {
 		t.Fatalf("CreateDraft() error = %v", err)
 	}
 	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
@@ -277,7 +285,11 @@ func TestHTTPHandlerDegradesWhenLevelProgressLookupFails(t *testing.T) {
 		t.Fatalf("NewCSRF() error = %v", err)
 	}
 	progress := &fakeLevelProgressLookup{err: context.DeadlineExceeded}
-	renderer := &spyRenderer{}
+	baseRenderer, err := web.NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	renderer := &captureRenderer{base: baseRenderer}
 	handler := NewHTTPHandler(HTTPDependencies{
 		Service: service, Status: appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
 		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
@@ -305,9 +317,20 @@ func TestHTTPHandlerDegradesWhenLevelProgressLookupFails(t *testing.T) {
 	if levelProgress != nil {
 		t.Fatalf("LevelProgress render data = %#v, want nil", levelProgress)
 	}
-	apps, ok := renderer.lastRender.data["Apps"].([]domain.Application)
-	if !ok || len(apps) != 1 {
-		t.Fatalf("Apps render data = %#v", renderer.lastRender.data["Apps"])
+	body := response.Body.String()
+	for _, marker := range []string{
+		"我的应用",
+		"应用列表",
+		"创建应用、查看上线状态、管理 OIDC 凭证。",
+		"Regression Example",
+		"workspace-grid",
+		"app-table",
+		"onboarding-list",
+		`href="/connect/apps/`,
+	} {
+		if !strings.Contains(body, marker) {
+			t.Fatalf("homepage body missing %q: %q", marker, body)
+		}
 	}
 }
 
