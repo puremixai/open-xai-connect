@@ -53,9 +53,34 @@ func NewHTTPHandler(deps HTTPDependencies) *HTTPHandler {
 }
 
 func RegisterRoutes(mux *http.ServeMux, handler *HTTPHandler) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		handler.home(w, r)
+	})
 	mux.HandleFunc("/connect/apps", handler.listOrCreate)
 	mux.HandleFunc("/connect/apps/new", handler.newForm)
 	mux.HandleFunc("/connect/apps/", handler.item)
+}
+
+func (h *HTTPHandler) home(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	subject, ok := h.authenticated(w, r)
+	if !ok {
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	h.render(w, "level-progress", map[string]any{
+		"PageTitle":     "用户等级进度",
+		"Layout":        h.layoutFor(r, subject, "home"),
+		"LevelProgress": h.loadLevelProgress(r.Context(), subject),
+	})
 }
 
 func (h *HTTPHandler) listOrCreate(w http.ResponseWriter, r *http.Request) {
@@ -86,15 +111,20 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, http.StatusInternalServerError, "无法读取应用", err.Error())
 		return
 	}
-	var levelProgress *identity.LevelProgressSnapshot
-	if h.levelProgress != nil {
-		if snapshot, err := h.levelProgress.CurrentLevelProgress(r.Context(), subject); err == nil {
-			levelProgress = &snapshot
-		}
-	}
 	h.render(w, "app-list", map[string]any{
-		"Apps": apps, "PageTitle": "应用总览", "Layout": h.layoutFor(r, subject, "apps"), "LevelProgress": levelProgress,
+		"Apps": apps, "PageTitle": "应用总览", "Layout": h.layoutFor(r, subject, "apps"), "LevelProgress": h.loadLevelProgress(r.Context(), subject),
 	})
+}
+
+func (h *HTTPHandler) loadLevelProgress(ctx context.Context, subject string) *identity.LevelProgressSnapshot {
+	if h == nil || h.levelProgress == nil {
+		return nil
+	}
+	snapshot, err := h.levelProgress.CurrentLevelProgress(ctx, subject)
+	if err != nil {
+		return nil
+	}
+	return &snapshot
 }
 
 func (h *HTTPHandler) newForm(w http.ResponseWriter, r *http.Request) {

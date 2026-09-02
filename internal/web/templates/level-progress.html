@@ -1,0 +1,138 @@
+{{template "portal-page-start" .}}
+{{template "level-progress-panel" .}}
+{{template "portal-page-end" .}}
+
+{{define "level-progress-panel"}}
+<section class="panel level-progress-panel" aria-labelledby="level-progress-title">
+  <div class="panel-head">
+    <h2 id="level-progress-title">用户等级进度</h2>
+    <span class="panel-hint">达到目标等级的条件</span>
+  </div>
+  {{if .LevelProgress}}
+  <div class="level-progress-body">
+    <div class="level-progress-summary">
+      <section class="level-progress-summary-card" aria-labelledby="level-progress-current-title">
+        <span class="level-progress-summary-label" id="level-progress-current-title">当前等级</span>
+        <strong class="level-progress-summary-value">{{.LevelProgress.CurrentLevel.ID}}</strong>
+        <span class="level-progress-summary-text">{{.LevelProgress.CurrentLevel.Label}}</span>
+      </section>
+      <section class="level-progress-summary-card" aria-labelledby="level-progress-target-title">
+        <span class="level-progress-summary-label" id="level-progress-target-title">目标等级</span>
+        {{if .LevelProgress.NextLevel}}
+        <strong class="level-progress-summary-value">{{.LevelProgress.NextLevel.ID}}</strong>
+        <span class="level-progress-summary-text">{{.LevelProgress.NextLevel.Label}}</span>
+        {{else}}
+        <strong class="level-progress-summary-value">无</strong>
+        <span class="level-progress-summary-text">当前已是最高等级</span>
+        {{end}}
+      </section>
+      <section class="level-progress-summary-card level-progress-summary-card-wide" aria-labelledby="level-progress-mode-title">
+        <span class="level-progress-summary-label" id="level-progress-mode-title">升级方式</span>
+        <strong class="level-progress-summary-inline">{{promotionModeLabel .LevelProgress.PromotionMode}}</strong>
+        {{if eq .LevelProgress.PromotionMode "automatic"}}
+        <span class="level-progress-summary-text">{{if requirementsMet .LevelProgress.RequirementsMet}}已满足自动升级条件{{else}}达到目标等级的条件{{end}}</span>
+        {{else if eq .LevelProgress.PromotionMode "manual"}}
+        <span class="level-progress-summary-text">目标等级 {{.LevelProgress.NextLevel.ID}} 需管理员授予</span>
+        {{else if eq .LevelProgress.PromotionMode "locked"}}
+        <span class="level-progress-summary-text">当前等级已被锁定，暂不能自动升级</span>
+        {{else}}
+        <span class="level-progress-summary-text">当前已是最高等级</span>
+        {{end}}
+      </section>
+    </div>
+
+    {{if eq .LevelProgress.PromotionMode "automatic"}}
+    <section class="level-progress-section" aria-labelledby="level-progress-conditions-title">
+      <div class="level-progress-section-head">
+        <h3 id="level-progress-conditions-title">达到目标等级的条件</h3>
+        <span class="level-progress-meta">同步于 {{formatTime .LevelProgress.GeneratedAt}}</span>
+      </div>
+      <div class="level-progress-groups">
+        {{range $index, $group := levelRequirementGroups .LevelProgress.Requirements}}
+        <section class="level-progress-group" aria-labelledby="level-group-{{$index}}">
+          <div class="level-progress-group-head">
+            <h3 id="level-group-{{$index}}">{{levelGroupLabel $group.Key}}</h3>
+          </div>
+          <div class="level-progress-requirements">
+            {{range $group.Requirements}}
+            <article class="level-requirement{{if .Met}} is-met{{else}} is-unmet{{end}}">
+              <div class="level-requirement-head">
+                <div class="level-requirement-copy">
+                  <h4 id="{{requirementLabelID .Key}}">{{.Label}}</h4>
+                  {{with requirementScopeHint .}}<p>{{.}}</p>{{end}}
+                </div>
+                <span class="level-requirement-status">{{requirementStatusLabel .Met}}</span>
+              </div>
+              {{if eq .Operator "at_least"}}
+              <div class="level-requirement-progress-copy">
+                <span>{{.Current}} / {{.Target}} {{requirementUnit .Unit}}</span>
+                <span>{{requirementOperator .Operator}}</span>
+              </div>
+              <progress class="level-requirement-progress" aria-labelledby="{{requirementLabelID .Key}}" value="{{progressValue .Current .Target}}" max="{{progressMax .Target}}">{{.Current}} / {{.Target}} {{requirementUnit .Unit}}</progress>
+              {{else}}
+              <p class="level-requirement-condition">当前 {{.Current}} {{requirementUnit .Unit}}，{{requirementOperator .Operator}} {{.Target}} {{requirementUnit .Unit}}</p>
+              {{end}}
+            </article>
+            {{end}}
+          </div>
+        </section>
+        {{end}}
+      </div>
+    </section>
+    {{else if eq .LevelProgress.PromotionMode "manual"}}
+    <section class="level-progress-section level-progress-state" aria-labelledby="level-progress-state-title">
+      <h3 id="level-progress-state-title">升级状态</h3>
+      <p>目标等级 {{.LevelProgress.NextLevel.ID}} 需管理员授予</p>
+      <p>当前已达到可自动升级的最高等级。</p>
+      <span class="level-progress-meta">同步于 {{formatTime .LevelProgress.GeneratedAt}}</span>
+    </section>
+    {{else if eq .LevelProgress.PromotionMode "locked"}}
+    <section class="level-progress-section level-progress-state" aria-labelledby="level-progress-state-title">
+      <h3 id="level-progress-state-title">升级状态</h3>
+      <p>当前等级已被锁定，暂不能自动升级</p>
+      <p>请先处理下方阻断条件。</p>
+      <span class="level-progress-meta">同步于 {{formatTime .LevelProgress.GeneratedAt}}</span>
+    </section>
+    {{else}}
+    <section class="level-progress-section level-progress-state" aria-labelledby="level-progress-state-title">
+      <h3 id="level-progress-state-title">升级状态</h3>
+      <p>当前已是最高等级</p>
+      <p>无需再满足下一等级条件。</p>
+      <span class="level-progress-meta">同步于 {{formatTime .LevelProgress.GeneratedAt}}</span>
+    </section>
+    {{end}}
+
+    {{if .LevelProgress.BlockingConditions}}
+    <section class="level-progress-section" aria-labelledby="level-progress-blocking-title">
+      <div class="level-progress-section-head">
+        <h3 id="level-progress-blocking-title">阻断条件</h3>
+        <span class="level-progress-meta">状态以同步结果为准</span>
+      </div>
+      <ul class="level-blocking-list">
+        {{range .LevelProgress.BlockingConditions}}
+        <li class="level-blocking-item">
+          <span class="level-blocking-label">{{.Label}}</span>
+          <span class="level-blocking-status">{{blockingStatusLabel .Met}}</span>
+        </li>
+        {{end}}
+      </ul>
+    </section>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="level-progress-body">
+    <div class="level-progress-summary">
+      <section class="level-progress-summary-card" aria-labelledby="level-progress-current-fallback-title">
+        <span class="level-progress-summary-label" id="level-progress-current-fallback-title">当前等级</span>
+        <strong class="level-progress-summary-value">{{.Layout.TrustLevel}}</strong>
+        <span class="level-progress-summary-text">当前同步等级</span>
+      </section>
+    </div>
+    <section class="level-progress-section level-progress-state" aria-labelledby="level-progress-sync-title">
+      <h3 id="level-progress-sync-title">条件状态</h3>
+      <p class="level-progress-sync-fallback">等级条件暂时无法同步</p>
+    </section>
+  </div>
+  {{end}}
+</section>
+{{end}}

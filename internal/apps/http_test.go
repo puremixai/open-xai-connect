@@ -275,6 +275,66 @@ func TestHTTPHandlerLoadsLevelProgressForHomepage(t *testing.T) {
 	}
 }
 
+func TestHTTPHandlerRendersLevelProgressOnlyAtRoot(t *testing.T) {
+	renderer, err := web.NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	csrf, err := session.NewCSRF([]byte("csrf-secret-012345"))
+	if err != nil {
+		t.Fatalf("NewCSRF() error = %v", err)
+	}
+	progress := &fakeLevelProgressLookup{
+		snapshot: identity.LevelProgressSnapshot{
+			SchemaVersion: 1,
+			DiscourseID:   42,
+			CurrentLevel:  identity.LevelInfo{ID: 1, Key: "basic", Label: "基础用户"},
+			NextLevel:     &identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+			PromotionMode: "automatic",
+			RequirementsMet: func() *bool {
+				value := false
+				return &value
+			}(),
+			Requirements: []identity.LevelRequirement{
+				{Key: "topics_entered", Label: "进入主题", Group: "activity", Current: 2, Target: 10, Operator: "at_least", Unit: "count"},
+			},
+			GeneratedAt: time.Date(2026, 9, 2, 8, 0, 0, 0, time.UTC),
+		},
+	}
+	handler := NewHTTPHandler(HTTPDependencies{
+		Status:        appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+	})
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, handler)
+
+	request := authenticatedRequest(t, sessions, "/")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("root status = %d, body = %q", response.Code, response.Body.String())
+	}
+	if got := response.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", got)
+	}
+	if progress.calls != 1 || len(progress.subjects) != 1 || progress.subjects[0] != "sub_1" {
+		t.Fatalf("CurrentLevelProgress() calls/subjects = %d/%#v, want 1/[sub_1]", progress.calls, progress.subjects)
+	}
+	body := response.Body.String()
+	for _, marker := range []string{"用户等级进度", "当前等级", "目标等级", "达到目标等级的条件", "基础用户", "成员"} {
+		if !strings.Contains(body, marker) {
+			t.Fatalf("root body missing %q: %q", marker, body)
+		}
+	}
+	for _, marker := range []string{"我的应用", "应用列表", "当前账号拥有", "workspace-grid", "app-table", "onboarding-list"} {
+		if strings.Contains(body, marker) {
+			t.Fatalf("root body unexpectedly contains app-list marker %q: %q", marker, body)
+		}
+	}
+}
+
 func TestHTTPHandlerDegradesWhenLevelProgressLookupFails(t *testing.T) {
 	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
 	input := validDraftInput()
