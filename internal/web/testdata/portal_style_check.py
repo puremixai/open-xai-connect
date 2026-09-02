@@ -63,6 +63,14 @@ html = f"""<!doctype html>
           <ol class="onboarding-list"><li><span>1</span><div><strong>Create</strong><small>Register the callback.</small></div></li></ol>
           <a class="button button-secondary button-wide" href="#onboarding">Create now</a>
         </section>
+        <section class="panel form-panel" aria-labelledby="form-title">
+          <div class="panel-head"><h2 id="form-title">Application details</h2><span class="panel-hint">Review before submit</span></div>
+          <form>
+            <fieldset class="form-section"><legend><span>1</span>Basics</legend><div class="field"><label for="form-name">Name</label><input id="form-name" placeholder="Example"></div></fieldset>
+            <div class="form-check-spacer" aria-hidden="true"></div>
+            <div class="form-actions form-actions-sticky"><a class="button button-secondary" href="#cancel">Cancel</a><button class="button" type="submit">Create</button></div>
+          </form>
+        </section>
         <p class="muted" id="tertiary">Supporting information</p>
       </div>
     </main>
@@ -104,6 +112,12 @@ try:
           const panelHead = document.querySelector('.panel-head');
           const row = document.querySelector('.app-table-row');
           const rowLink = document.querySelector('.app-row-link');
+          const formPanel = document.querySelector('.form-panel');
+          const formActions = document.querySelector('.form-actions-sticky');
+          document.querySelector('.form-check-spacer').style.height = '900px';
+          window.scrollTo(0, 300);
+          const actionBottomAtScroll = formActions.getBoundingClientRect().bottom;
+          window.scrollTo(0, 0);
           const badge = style('.status-success');
           const dot = getComputedStyle(document.querySelector('.status-success'), '::before');
           return {
@@ -131,6 +145,9 @@ try:
             rowShadow: getComputedStyle(row).boxShadow,
             rowGap: getComputedStyle(rowLink).gap,
             rowPadding: getComputedStyle(rowLink).padding,
+            formPanelOverflow: getComputedStyle(formPanel).overflow,
+            formActionPosition: getComputedStyle(formActions).position,
+            formActionBottomAtScroll: actionBottomAtScroll,
             badgeBackground: badge.backgroundColor,
             badgeText: badge.color,
             badgeDot: dot.backgroundColor
@@ -161,6 +178,9 @@ try:
     check(desktop["rowShadow"] == "none", "application rows must use spacing instead of divider lines")
     check(desktop["rowGap"] == "16px", "application row spacing must use a 4px increment")
     check(desktop["rowPadding"] == "16px 20px", "application row padding must use 4px increments")
+    check(desktop["formPanelOverflow"] == "clip", "form panels must not clip sticky actions with a scroll container")
+    check(desktop["formActionPosition"] == "sticky", "form actions must remain sticky while editing")
+    check(abs(desktop["formActionBottomAtScroll"] - 900) <= 1, "form actions must stay pinned to the viewport bottom while scrolling")
     check(desktop["badgeBackground"] == "rgba(0, 0, 0, 0)", "status labels must not use colored fills")
     check(desktop["badgeText"] == "rgb(77, 77, 77)", "status labels must use neutral text")
     check(desktop["badgeDot"] == "rgb(57, 142, 74)", "success status must keep color only in its dot")
