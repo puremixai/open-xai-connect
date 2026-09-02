@@ -100,6 +100,46 @@ func TestLevelProgressRefresherRejectsMismatchedSnapshotBeforeCaching(t *testing
 	}
 }
 
+func TestLevelProgressRefresherRefetchesWhenCachedSnapshotIsInvalid(t *testing.T) {
+	ctx := context.Background()
+	users := memory.NewUserRepository()
+	now := time.Date(2026, 9, 2, 8, 0, 0, 0, time.UTC)
+	if err := users.Upsert(ctx, domain.User{
+		Subject: "sub_1", DiscourseID: 42, CreatedAt: now, UpdatedAt: now,
+	}); err != nil {
+		t.Fatalf("Upsert() error = %v", err)
+	}
+	provider := &levelProgressProviderSpy{
+		snapshots: map[int64]LevelProgressSnapshot{
+			42: validLevelProgressSnapshot(),
+		},
+	}
+	cache := newMemoryLevelProgressCache()
+	cache.values[42] = func() LevelProgressSnapshot {
+		snapshot := validLevelProgressSnapshot()
+		snapshot.DiscourseID = 7
+		return snapshot
+	}()
+	refresher := NewLevelProgressRefresher(provider, users, cache)
+
+	got, err := refresher.CurrentLevelProgress(ctx, "sub_1")
+	if err != nil {
+		t.Fatalf("CurrentLevelProgress() error = %v", err)
+	}
+	if got.DiscourseID != 42 {
+		t.Fatalf("CurrentLevelProgress() returned cached invalid snapshot %#v", got)
+	}
+	if provider.callsByID[42] != 1 {
+		t.Fatalf("provider calls for 42 = %d, want 1", provider.callsByID[42])
+	}
+	if cache.invalidatedIDs[0] != 42 || len(cache.invalidatedIDs) != 1 {
+		t.Fatalf("invalidated ids = %#v", cache.invalidatedIDs)
+	}
+	if cache.setCalls != 1 {
+		t.Fatalf("cache set calls = %d, want 1", cache.setCalls)
+	}
+}
+
 func TestRedisLevelProgressCacheGetSetInvalidate(t *testing.T) {
 	ctx := context.Background()
 	backend := &levelProgressCacheBackendFake{values: make(map[string]string)}
@@ -175,8 +215,9 @@ func (s *levelProgressProviderSpy) FetchLevelProgress(_ context.Context, discour
 }
 
 type memoryLevelProgressCache struct {
-	values   map[int64]LevelProgressSnapshot
-	setCalls int
+	values         map[int64]LevelProgressSnapshot
+	setCalls       int
+	invalidatedIDs []int64
 }
 
 func newMemoryLevelProgressCache() *memoryLevelProgressCache {
@@ -195,6 +236,7 @@ func (c *memoryLevelProgressCache) Set(_ context.Context, snapshot LevelProgress
 }
 
 func (c *memoryLevelProgressCache) Invalidate(_ context.Context, discourseID int64) error {
+	c.invalidatedIDs = append(c.invalidatedIDs, discourseID)
 	delete(c.values, discourseID)
 	return nil
 }

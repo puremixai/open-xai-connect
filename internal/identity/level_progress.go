@@ -86,7 +86,10 @@ func (r *LevelProgressRefresher) CurrentLevelProgress(ctx context.Context, subje
 			return LevelProgressSnapshot{}, err
 		}
 		if ok {
-			return snapshot, nil
+			if err := snapshot.ValidateFor(user.DiscourseID); err == nil {
+				return snapshot, nil
+			}
+			_ = r.cache.Invalidate(ctx, user.DiscourseID)
 		}
 	}
 	snapshot, err := r.provider.FetchLevelProgress(ctx, user.DiscourseID)
