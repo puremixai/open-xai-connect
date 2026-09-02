@@ -125,3 +125,13 @@ func TestPortalStylesInsetApplicationDetailSteps(t *testing.T) {
 		t.Fatal("application detail steps should align with the panel content inset")
 	}
 }
+
+func TestPortalFormSeparatesAuthorizationSectionFromLogo(t *testing.T) {
+	stylesheet, err := staticFS.ReadFile("static/portal.css")
+	if err != nil {
+		t.Fatalf("read portal.css: %v", err)
+	}
+	if !strings.Contains(string(stylesheet), ".form-section + .form-section { margin-top: var(--space-6);") {
+		t.Fatal("authorization section should have a full spacing token before its title")
+	}
+}
