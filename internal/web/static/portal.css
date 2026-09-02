@@ -421,7 +421,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
 .app-table-panel { overflow: hidden; }
 .app-table { display: grid; }
 .app-table-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 18px; align-items: center;
+  display: grid; grid-template-columns: minmax(0, 1fr) 148px 56px; gap: 18px; align-items: center;
   padding: 14px 20px;
   border-top: 1px solid var(--border);
   transition: background .12s ease;
@@ -433,7 +433,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
 }
 .app-row-copy { display: grid; min-width: 0; gap: 1px; }
 .app-row-copy .app-description { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.app-row-status { display: grid; justify-items: end; gap: 4px; min-width: 96px; }
+.app-row-status { display: grid; justify-items: end; gap: 4px; min-width: 0; }
 .row-action {
   display: inline-flex; align-items: center; gap: 6px;
   color: var(--text-3); font-size: 13px; font-weight: 500; text-decoration: none; white-space: nowrap;
@@ -748,7 +748,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
   .stat-card, .admin-stat { padding: 13px 15px; }
   .stat-card strong, .admin-stat strong { font-size: 22px; }
 
-  .app-table-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 13px 16px; }
+  .app-table-row { grid-template-columns: minmax(0, 1fr) 112px; gap: 10px; padding: 13px 16px; }
   .app-row-status { justify-items: end; }
   .row-action { grid-column: 1 / -1; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border); }
 
