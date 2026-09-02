@@ -37,6 +37,34 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 	}
 }
 
+func TestRendererUsesOneLinkForEachApplicationRow(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", map[string]any{
+		"Apps": []domain.Application{{
+			ID:          "app_1",
+			Name:        "Example App",
+			Description: "Example description",
+			Status:      domain.StatusApproved,
+		}},
+		"Layout": Layout{Active: "apps"},
+	})
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	if got := strings.Count(body, `href="/connect/apps/app_1"`); got != 1 {
+		t.Fatalf("application row has %d detail links, want one full-row link", got)
+	}
+	if !strings.Contains(body, `class="app-row-link"`) ||
+		!strings.Contains(body, `aria-label="查看 Example App 详情"`) {
+		t.Fatalf("application row is missing its labelled full-row link: %q", body)
+	}
+}
+
 func TestRendererScopesConsentFormActionToValidatedCallbackOrigins(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {

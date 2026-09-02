@@ -157,18 +157,20 @@
     <div class="app-table" role="list">
       {{range .Apps}}
       <article class="app-table-row" role="listitem">
-        <a class="app-row-main" href="/connect/apps/{{.ID}}">
-          <span class="app-mark">
-            {{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.Name}} Logo">{{else}}{{appInitial .Name}}{{end}}
+        <a class="app-row-link" href="/connect/apps/{{.ID}}" aria-label="查看 {{.Name}} 详情">
+          <span class="app-row-main">
+            <span class="app-mark">
+              {{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.Name}} Logo">{{else}}{{appInitial .Name}}{{end}}
+            </span>
+            <span class="app-row-copy">
+              <span class="app-name">{{.Name}}</span>
+              <span class="app-description">{{if .Description}}{{truncate .Description 90}}{{else}}未填写用途说明{{end}}</span>
+              <span class="app-meta"><span>{{len .CallbackURLs}} 个回调地址</span>{{if .ClientID}}<span class="detail-mono">{{truncate (printf "ID %s" .ClientID) 22}}</span>{{end}}</span>
+            </span>
           </span>
-          <span class="app-row-copy">
-            <span class="app-name">{{.Name}}</span>
-            <span class="app-description">{{if .Description}}{{truncate .Description 90}}{{else}}未填写用途说明{{end}}</span>
-            <span class="app-meta"><span>{{len .CallbackURLs}} 个回调地址</span>{{if .ClientID}}<span class="detail-mono">{{truncate (printf "ID %s" .ClientID) 22}}</span>{{end}}</span>
-          </span>
+          <span class="app-row-status"><span class="status-badge status-{{statusTone .Status}}">{{statusLabel .Status}}</span><span class="updated">{{formatTime .UpdatedAt}}</span></span>
+          <span class="row-action" aria-hidden="true">详情<span>›</span></span>
         </a>
-        <span class="app-row-status"><span class="status-badge status-{{statusTone .Status}}">{{statusLabel .Status}}</span><span class="updated">{{formatTime .UpdatedAt}}</span></span>
-        <a class="row-action" href="/connect/apps/{{.ID}}">详情<span aria-hidden="true">›</span></a>
       </article>
       {{end}}
     </div>
