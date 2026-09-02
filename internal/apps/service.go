@@ -129,20 +129,26 @@ func (s *Service) UpdateDraft(ctx context.Context, subject string, id domain.App
 	if err != nil {
 		return domain.Application{}, err
 	}
-	if app.Status != domain.StatusDraft && app.Status != domain.StatusChangesRequested && app.Status != domain.StatusRejected {
+	if !editableApplicationStatus(app.Status) {
 		return domain.Application{}, ErrInvalidState
 	}
 	if err := validateInput(subject, input); err != nil {
 		return domain.Application{}, err
+	}
+	if app.Status == domain.StatusApproved {
+		if err := s.syncApprovedClient(ctx, app, input); err != nil {
+			return domain.Application{}, err
+		}
+	} else {
+		app.ReviewNote = ""
+		app.ReviewedBy = ""
+		app.Status = domain.StatusDraft
 	}
 	app.Name = strings.TrimSpace(input.Name)
 	app.Description = strings.TrimSpace(input.Description)
 	app.LogoURL = strings.TrimSpace(input.LogoURL)
 	app.CallbackURLs = append([]string(nil), input.CallbackURLs...)
 	app.VerifiedDomains = normalizeDomains(input.VerifiedDomains)
-	app.ReviewNote = ""
-	app.ReviewedBy = ""
-	app.Status = domain.StatusDraft
 	app.UpdatedAt = s.now().UTC()
 	if err := s.apps.Save(ctx, app); err != nil {
 		return domain.Application{}, err
@@ -151,6 +157,44 @@ func (s *Service) UpdateDraft(ctx context.Context, subject string, id domain.App
 		return domain.Application{}, err
 	}
 	return app, nil
+}
+
+func (s *Service) syncApprovedClient(ctx context.Context, app domain.Application, input DraftInput) error {
+	if s.box == nil || s.hydra == nil {
+		return errors.New("approved application update dependencies are not initialized")
+	}
+	if app.ClientID == "" || app.EncryptedClientSecret == "" {
+		return errors.New("approved application credentials are not initialized")
+	}
+	secret, err := s.box.Decrypt(app.EncryptedClientSecret, secretAssociatedData(app))
+	if err != nil {
+		return fmt.Errorf("decrypt existing application secret: %w", err)
+	}
+	credentials, err := s.hydra.UpdateClient(ctx, string(app.ClientID), hydra.ClientRegistration{
+		ClientID: string(app.ClientID), ClientName: strings.TrimSpace(input.Name), LogoURI: strings.TrimSpace(input.LogoURL),
+		RedirectURIs:  append([]string(nil), input.CallbackURLs...),
+		GrantTypes:    []string{"authorization_code", "refresh_token"},
+		ResponseTypes: []string{"code"}, Scope: "openid profile email community offline_access",
+		TokenEndpointAuthMethod: "client_secret_basic", Owner: app.OwnerSubject,
+		ClientSecret: secret, AccessTokenStrategy: "opaque", IDTokenLifespan: "1h",
+		AccessTokenLifespan: "24h", RefreshTokenLifespan: "4320h",
+	})
+	if err != nil {
+		return err
+	}
+	if credentials.ID != string(app.ClientID) || credentials.Secret != secret {
+		return errors.New("Hydra changed the application credentials during metadata update")
+	}
+	return nil
+}
+
+func editableApplicationStatus(status domain.ApplicationStatus) bool {
+	switch status {
+	case domain.StatusDraft, domain.StatusChangesRequested, domain.StatusRejected, domain.StatusApproved:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) Submit(ctx context.Context, subject string, id domain.ApplicationID) (domain.Application, error) {

@@ -409,10 +409,5 @@ func parseConfirmation(value string) (time.Time, error) {
 }
 
 func editableStatus(status domain.ApplicationStatus) bool {
-	switch status {
-	case domain.StatusDraft, domain.StatusChangesRequested, domain.StatusRejected:
-		return true
-	default:
-		return false
-	}
+	return editableApplicationStatus(status)
 }

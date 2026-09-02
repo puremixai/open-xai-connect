@@ -30,6 +30,7 @@ func NewRenderer() (*Renderer, error) {
 		"countOpen":   countOpen,
 		"add":         add,
 		"canSubmit":   canSubmit,
+		"canEdit":     canEdit,
 		"formatTime":  formatTime,
 		"truncate":    truncate,
 		"appInitial":  appInitial,
@@ -103,6 +104,10 @@ func add(left, right int) int {
 
 func canSubmit(status domain.ApplicationStatus) bool {
 	return status == domain.StatusDraft || status == domain.StatusChangesRequested || status == domain.StatusRejected
+}
+
+func canEdit(status domain.ApplicationStatus) bool {
+	return canSubmit(status) || status == domain.StatusApproved
 }
 
 func formatTime(value time.Time) string {

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"connect.xai.run/internal/domain"
 	"connect.xai.run/internal/identity"
 	"connect.xai.run/internal/session"
 	"connect.xai.run/internal/web"
@@ -138,5 +139,17 @@ func TestHTTPHandlerAllowsOwnerToEditAnUnpublishedApplication(t *testing.T) {
 	}
 	if updated.Name != "Updated Example" || updated.CallbackURLs[0] != "https://app.example/updated" {
 		t.Fatalf("updated app = %#v", updated)
+	}
+	updated.Status = domain.StatusApproved
+	updated.ClientID = domain.ClientID("client_1")
+	if err := repo.Save(nil, updated); err != nil {
+		t.Fatalf("save approved app: %v", err)
+	}
+	approvedEditRequest := httptest.NewRequest(http.MethodGet, "/connect/apps/"+string(app.ID)+"/edit", nil)
+	approvedEditRequest.AddCookie(cookie)
+	approvedEditResponse := httptest.NewRecorder()
+	mux.ServeHTTP(approvedEditResponse, approvedEditRequest)
+	if approvedEditResponse.Code != http.StatusOK || !strings.Contains(approvedEditResponse.Body.String(), "编辑应用") {
+		t.Fatalf("approved edit response status = %d, body = %q", approvedEditResponse.Code, approvedEditResponse.Body.String())
 	}
 }

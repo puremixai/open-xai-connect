@@ -150,6 +150,7 @@ func TestRendererShowsCredentialActionsForApprovedApplication(t *testing.T) {
 	}
 	body := response.Body.String()
 	for _, expected := range []string{
+		`href="/connect/apps/app_1/edit"`,
 		`action="/connect/apps/app_1/secret"`,
 		`action="/connect/apps/app_1/rotate-secret"`,
 		`name="confirmed_at" value="1787918400"`,

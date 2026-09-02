@@ -115,3 +115,13 @@ func TestPortalStylesheetCoversClassesUsedByTemplates(t *testing.T) {
 		}
 	}
 }
+
+func TestPortalStylesInsetApplicationDetailSteps(t *testing.T) {
+	stylesheet, err := staticFS.ReadFile("static/portal.css")
+	if err != nil {
+		t.Fatalf("read portal.css: %v", err)
+	}
+	if !strings.Contains(string(stylesheet), ".detail-steps { display: grid; margin: 0; padding: var(--space-1) 20px var(--space-4);") {
+		t.Fatal("application detail steps should align with the panel content inset")
+	}
+}

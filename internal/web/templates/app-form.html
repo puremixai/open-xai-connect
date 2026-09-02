@@ -10,7 +10,7 @@
   <header class="page-header">
     <div>
       <h1>{{.Title}}</h1>
-      <p class="lead">登记应用资料并提交，平台会自动创建 OIDC Client，无需等待人工审核。</p>
+      <p class="lead">{{if eq .Title "编辑应用"}}更新应用资料，保存后会返回详情页；已上线应用会同步 OIDC Client。{{else}}登记应用资料并提交，平台会自动创建 OIDC Client，无需等待人工审核。{{end}}</p>
     </div>
   </header>
 
@@ -18,7 +18,7 @@
     <section class="panel form-panel" aria-labelledby="form-title">
       <div class="panel-head">
         <h2 id="form-title">{{if eq .Title "编辑应用"}}更新应用资料{{else}}应用资料{{end}}</h2>
-        <span class="panel-hint">提交前请逐项核对</span>
+        <span class="panel-hint">{{if eq .Title "编辑应用"}}保存前请逐项核对{{else}}提交前请逐项核对{{end}}</span>
       </div>
       <form method="post" action="{{.Action}}" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -67,7 +67,7 @@
       </form>
     </section>
 
-    <p class="form-footnote">提交后应用进入自动上线流程，上线后在应用详情查看 Client ID，并按需查看 Client Secret。</p>
+    <p class="form-footnote">{{if eq .Title "编辑应用"}}保存后返回应用详情查看最新资料；已上线应用的 Client ID 和 Secret 会保持不变。{{else}}提交后应用进入自动上线流程，上线后在应用详情查看 Client ID，并按需查看 Client Secret。{{end}}</p>
   </div>
 </div>
 

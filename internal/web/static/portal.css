@@ -496,7 +496,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 .detail-grid-wide dt { color: var(--text-3); font-size: 13px; }
 .detail-grid-wide dd { color: var(--text); overflow-wrap: anywhere; font-size: 13.5px; }
 
-.detail-steps { display: grid; margin: 0; padding: var(--space-1) 0 0; list-style: none; }
+.detail-steps { display: grid; margin: 0; padding: var(--space-1) 20px var(--space-4); list-style: none; }
 .detail-steps li {
   position: relative;
   display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; align-items: start;

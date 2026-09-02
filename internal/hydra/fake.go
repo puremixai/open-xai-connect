@@ -48,7 +48,11 @@ func (f *Fake) UpdateClient(_ context.Context, clientID string, registration Cli
 	}
 	registration.ClientID = clientID
 	f.Updates = append(f.Updates, registration)
-	return ClientCredentials{ID: clientID, Secret: "rotated_" + clientID}, nil
+	secret := "rotated_" + clientID
+	if registration.ClientSecret != "" && registration.AccessTokenStrategy != "" {
+		secret = registration.ClientSecret
+	}
+	return ClientCredentials{ID: clientID, Secret: secret}, nil
 }
 
 func (f *Fake) DeleteClient(_ context.Context, clientID string) error {

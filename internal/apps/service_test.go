@@ -230,3 +230,54 @@ func TestRotateSecretRequiresConfirmationAndInvalidatesOldSecret(t *testing.T) {
 		t.Fatalf("Hydra updates = %#v", fake.Updates)
 	}
 }
+
+func TestUpdateApprovedApplicationSyncsHydraWithoutRotatingSecret(t *testing.T) {
+	service, repo := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	service.now = func() time.Time { return time.Date(2026, 8, 28, 13, 0, 0, 0, time.UTC) }
+	app := domain.Application{
+		ID: domain.ApplicationID("app_1"), OwnerSubject: "sub_1", Name: "Example",
+		Description: "Original description", LogoURL: "/assets/logo.png",
+		CallbackURLs: []string{"https://app.example/callback"}, VerifiedDomains: []string{"app.example"},
+		Status: domain.StatusApproved, ClientID: domain.ClientID("client_1"), SecretVersion: 2,
+	}
+	var err error
+	app.EncryptedClientSecret, err = service.box.Encrypt("existing-secret", secretAssociatedData(app))
+	if err != nil {
+		t.Fatalf("Encrypt() error = %v", err)
+	}
+	if err := repo.Create(context.Background(), app); err != nil {
+		t.Fatalf("seed approved app: %v", err)
+	}
+
+	input := DraftInput{
+		Name: "Updated Example", Description: "Updated description", LogoURL: "/assets/updated.png",
+		CallbackURLs: []string{"https://updated.example/oauth/callback"}, VerifiedDomains: []string{"updated.example"},
+	}
+	updated, err := service.UpdateDraft(context.Background(), "sub_1", app.ID, input)
+	if err != nil {
+		t.Fatalf("UpdateDraft() error = %v", err)
+	}
+	if updated.Status != domain.StatusApproved {
+		t.Fatalf("updated status = %s, want approved", updated.Status)
+	}
+	if updated.Name != input.Name || updated.Description != input.Description || updated.LogoURL != input.LogoURL ||
+		updated.CallbackURLs[0] != input.CallbackURLs[0] || updated.VerifiedDomains[0] != input.VerifiedDomains[0] {
+		t.Fatalf("updated app = %#v", updated)
+	}
+	if updated.EncryptedClientSecret != app.EncryptedClientSecret || updated.SecretVersion != app.SecretVersion {
+		t.Fatalf("approved credentials changed during metadata update = %#v", updated)
+	}
+	secret, err := service.box.Decrypt(updated.EncryptedClientSecret, secretAssociatedData(updated))
+	if err != nil || secret != "existing-secret" {
+		t.Fatalf("existing secret = %q/%v", secret, err)
+	}
+	fake := service.hydra.(*hydra.Fake)
+	if len(fake.Updates) != 1 {
+		t.Fatalf("Hydra updates = %#v, want one update", fake.Updates)
+	}
+	registration := fake.Updates[0]
+	if registration.ClientID != "client_1" || registration.ClientName != input.Name || registration.ClientSecret != "existing-secret" ||
+		registration.LogoURI != input.LogoURL || registration.RedirectURIs[0] != input.CallbackURLs[0] || registration.Owner != "sub_1" {
+		t.Fatalf("Hydra registration = %#v", registration)
+	}
+}
