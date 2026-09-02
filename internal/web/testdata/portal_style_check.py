@@ -64,6 +64,8 @@ html = f"""<!doctype html>
           <a class="button button-secondary button-wide" href="#onboarding">Create now</a>
         </section>
         <div class="form-page">
+          <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="#apps">Applications</a><span aria-hidden="true">/</span><span>Create app</span></nav>
+          <header class="page-header"><div><h1>Create app</h1><p class="lead">Register application details and publish an OIDC client.</p></div></header>
           <section class="panel form-panel" aria-labelledby="form-title">
             <div class="panel-head"><h2 id="form-title">Application details</h2><span class="panel-hint">Review before submit</span></div>
             <form>
@@ -116,7 +118,11 @@ try:
           const rowLink = document.querySelector('.app-row-link');
           const formPage = document.querySelector('.form-page');
           const container = document.querySelector('.portal-container');
+          const formBreadcrumbs = document.querySelector('.form-page .breadcrumbs');
+          const formHeader = document.querySelector('.form-page .page-header');
+          const formTitle = document.querySelector('.form-page .page-header h1');
           const formPanel = document.querySelector('.form-panel');
+          const formPanelTitle = document.querySelector('.form-panel .panel-head h2');
           const formActions = document.querySelector('.form-actions-sticky');
           document.querySelector('.form-check-spacer').style.height = '900px';
           window.scrollTo(0, 300);
@@ -152,6 +158,12 @@ try:
             formPageWidth: formPage.getBoundingClientRect().width,
             formPageLeft: formPage.getBoundingClientRect().left,
             containerLeft: container.getBoundingClientRect().left,
+            formBreadcrumbBottom: formBreadcrumbs.getBoundingClientRect().bottom,
+            formHeaderTop: formHeader.getBoundingClientRect().top,
+            formHeaderBottom: formHeader.getBoundingClientRect().bottom,
+            formTitleStyle: {fontSize:getComputedStyle(formTitle).fontSize,fontWeight:getComputedStyle(formTitle).fontWeight,lineHeight:getComputedStyle(formTitle).lineHeight},
+            formPanelTitleStyle: {fontSize:getComputedStyle(formPanelTitle).fontSize,fontWeight:getComputedStyle(formPanelTitle).fontWeight,lineHeight:getComputedStyle(formPanelTitle).lineHeight},
+            formPanelTop: formPanel.getBoundingClientRect().top,
             formPanelOverflow: getComputedStyle(formPanel).overflow,
             formActionPosition: getComputedStyle(formActions).position,
             formActionBottomAtScroll: actionBottomAtScroll,
@@ -187,6 +199,13 @@ try:
     check(desktop["rowPadding"] == "16px 20px", "application row padding must use 4px increments")
     check(desktop["formPageWidth"] >= 840, "desktop form should use a readable wide content column")
     check(abs(desktop["formPageLeft"] - desktop["containerLeft"]) <= 1, "desktop form should align with the main content column")
+    check(desktop["formTitleStyle"]["fontSize"] == "32px", "desktop form title should have a clear display scale")
+    check(desktop["formTitleStyle"]["fontWeight"] == "600", "desktop form title should use semibold hierarchy")
+    check(desktop["formTitleStyle"]["lineHeight"] == "40px", "desktop form title line-height should match its display scale")
+    check(desktop["formHeaderTop"] - desktop["formBreadcrumbBottom"] >= 24, "desktop form title needs breathing room below breadcrumbs")
+    check(desktop["formPanelTop"] - desktop["formHeaderBottom"] >= 32, "desktop form card should be separated from the page title")
+    check(desktop["formPanelTitleStyle"]["fontSize"] == "16px", "form card title should be distinct from field labels")
+    check(desktop["formPanelTitleStyle"]["fontWeight"] == "600", "form card title should use semibold hierarchy")
     check(desktop["formPanelOverflow"] == "clip", "form panels must not clip sticky actions with a scroll container")
     check(desktop["formActionPosition"] == "sticky", "form actions must remain sticky while editing")
     check(abs(desktop["formActionBottomAtScroll"] - 900) <= 1, "form actions must stay pinned to the viewport bottom while scrolling")
