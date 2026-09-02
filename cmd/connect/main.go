@@ -144,6 +144,12 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 	}
 	eventIDs := identity.NewRedisNonceStore(redisClient, "connect:identity:event:")
 	status := identity.NewStatusRefresher(discourse, db)
+	levelProgressCache := identity.NewRedisLevelProgressCache(
+		redisClient,
+		"connect:identity:level-progress:v1:",
+		5*time.Minute,
+	)
+	levelProgress := identity.NewLevelProgressRefresher(discourse, db, levelProgressCache)
 	access := identity.NewAccessLookup(status, db)
 	consents := postgres.NewConsentStore(db)
 	outbox := postgres.NewOutboxStore(db)
@@ -200,7 +206,8 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 		return nil, err
 	}
 
-	identityEvents := identity.NewEventConsumer(verifier, db, eventIDs)
+	identityEvents := identity.NewEventConsumer(verifier, db, eventIDs, levelProgressCache)
+	_ = levelProgress
 	appHTTP := apps.NewHTTPHandler(apps.HTTPDependencies{
 		Service: appService, Status: status, Sessions: sessions, CSRF: csrf, Renderer: renderer, Assets: assetStore,
 	})

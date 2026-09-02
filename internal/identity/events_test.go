@@ -22,7 +22,8 @@ func TestEventConsumerVerifiesAndAppliesSignedStatusEvent(t *testing.T) {
 	})
 	verifier, _ := NewVerifier([]byte("shared-secret"), 5*time.Minute, NewMemoryNonceStore())
 	verifier.now = func() time.Time { return now }
-	consumer := NewEventConsumer(verifier, users, NewMemoryNonceStore())
+	cache := &progressCacheSpy{}
+	consumer := NewEventConsumer(verifier, users, NewMemoryNonceStore(), cache)
 	payload, _ := json.Marshal(StatusEvent{
 		EventID: "event-1", UserID: 42, EventType: "user_status_changed",
 		OccurredAt: now, Status: UserSnapshot{
@@ -44,7 +45,27 @@ func TestEventConsumerVerifiesAndAppliesSignedStatusEvent(t *testing.T) {
 	if updated.Active || !updated.Suspended || updated.Email != "alice@example.com" || updated.TrustLevel != 2 {
 		t.Fatalf("updated user = %#v", updated)
 	}
+	if len(cache.invalidated) != 1 || cache.invalidated[0] != 42 {
+		t.Fatalf("invalidated ids = %#v", cache.invalidated)
+	}
 	if err := consumer.ServeHTTP(httptest.NewRecorder(), request); err == nil {
 		t.Fatal("ServeHTTP() accepted duplicate event")
 	}
+}
+
+type progressCacheSpy struct {
+	invalidated []int64
+}
+
+func (s *progressCacheSpy) Get(context.Context, int64) (LevelProgressSnapshot, bool, error) {
+	return LevelProgressSnapshot{}, false, nil
+}
+
+func (s *progressCacheSpy) Set(context.Context, LevelProgressSnapshot, time.Duration) error {
+	return nil
+}
+
+func (s *progressCacheSpy) Invalidate(_ context.Context, discourseID int64) error {
+	s.invalidated = append(s.invalidated, discourseID)
+	return nil
 }

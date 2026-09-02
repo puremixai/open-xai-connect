@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"connect.xai.run/internal/domain"
+	"connect.xai.run/internal/store"
 )
 
 type LevelProgressSnapshot struct {
@@ -51,6 +54,54 @@ type LevelProgressProvider interface {
 
 type LevelProgressLookup interface {
 	CurrentLevelProgress(context.Context, string) (LevelProgressSnapshot, error)
+}
+
+type LevelProgressCache interface {
+	Get(context.Context, int64) (LevelProgressSnapshot, bool, error)
+	Set(context.Context, LevelProgressSnapshot, time.Duration) error
+	Invalidate(context.Context, int64) error
+}
+
+type LevelProgressRefresher struct {
+	provider LevelProgressProvider
+	users    store.UserRepository
+	cache    LevelProgressCache
+}
+
+func NewLevelProgressRefresher(provider LevelProgressProvider, users store.UserRepository, cache LevelProgressCache) *LevelProgressRefresher {
+	return &LevelProgressRefresher{provider: provider, users: users, cache: cache}
+}
+
+func (r *LevelProgressRefresher) CurrentLevelProgress(ctx context.Context, subject string) (LevelProgressSnapshot, error) {
+	if r == nil || r.provider == nil || r.users == nil {
+		return LevelProgressSnapshot{}, errors.New("level progress refresher is not initialized")
+	}
+	user, err := r.users.GetBySubject(ctx, domain.UserID(subject))
+	if err != nil {
+		return LevelProgressSnapshot{}, err
+	}
+	if r.cache != nil {
+		snapshot, ok, err := r.cache.Get(ctx, user.DiscourseID)
+		if err != nil {
+			return LevelProgressSnapshot{}, err
+		}
+		if ok {
+			return snapshot, nil
+		}
+	}
+	snapshot, err := r.provider.FetchLevelProgress(ctx, user.DiscourseID)
+	if err != nil {
+		return LevelProgressSnapshot{}, err
+	}
+	if err := snapshot.ValidateFor(user.DiscourseID); err != nil {
+		return LevelProgressSnapshot{}, err
+	}
+	if r.cache != nil {
+		if err := r.cache.Set(ctx, snapshot, 0); err != nil {
+			return LevelProgressSnapshot{}, err
+		}
+	}
+	return snapshot, nil
 }
 
 func (s LevelProgressSnapshot) ValidateFor(discourseID int64) error {

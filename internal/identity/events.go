@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -25,11 +26,12 @@ type EventConsumer struct {
 	verifier *Verifier
 	users    store.UserRepository
 	eventIDs NonceStore
+	cache    LevelProgressCache
 	now      func() time.Time
 }
 
-func NewEventConsumer(verifier *Verifier, users store.UserRepository, eventIDs NonceStore) *EventConsumer {
-	return &EventConsumer{verifier: verifier, users: users, eventIDs: eventIDs, now: time.Now}
+func NewEventConsumer(verifier *Verifier, users store.UserRepository, eventIDs NonceStore, cache LevelProgressCache) *EventConsumer {
+	return &EventConsumer{verifier: verifier, users: users, eventIDs: eventIDs, cache: cache, now: time.Now}
 }
 
 func (c *EventConsumer) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
@@ -93,6 +95,11 @@ func (c *EventConsumer) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	}); err != nil {
 		writeEventError(w, http.StatusServiceUnavailable)
 		return err
+	}
+	if c.cache != nil {
+		if err := c.cache.Invalidate(r.Context(), event.UserID); err != nil {
+			slog.Warn("invalidate level progress cache after identity event", "discourse_id", event.UserID, "error", err)
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
