@@ -539,7 +539,7 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 
 /* 7c. Application form --------------------------------------------------------------- */
 
-.form-page { max-width: 720px; margin: 0 auto; }
+.form-page { max-width: 880px; margin: 0; }
 .form-workspace { display: grid; gap: var(--space-4); }
 .form-panel { overflow: clip; }
 .form-panel form { padding: 4px 24px 24px; }

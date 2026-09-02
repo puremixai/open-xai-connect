@@ -63,14 +63,16 @@ html = f"""<!doctype html>
           <ol class="onboarding-list"><li><span>1</span><div><strong>Create</strong><small>Register the callback.</small></div></li></ol>
           <a class="button button-secondary button-wide" href="#onboarding">Create now</a>
         </section>
-        <section class="panel form-panel" aria-labelledby="form-title">
-          <div class="panel-head"><h2 id="form-title">Application details</h2><span class="panel-hint">Review before submit</span></div>
-          <form>
-            <fieldset class="form-section"><legend><span>1</span>Basics</legend><div class="field"><label for="form-name">Name</label><input id="form-name" placeholder="Example"></div></fieldset>
-            <div class="form-check-spacer" aria-hidden="true"></div>
-            <div class="form-actions form-actions-sticky"><a class="button button-secondary" href="#cancel">Cancel</a><button class="button" type="submit">Create</button></div>
-          </form>
-        </section>
+        <div class="form-page">
+          <section class="panel form-panel" aria-labelledby="form-title">
+            <div class="panel-head"><h2 id="form-title">Application details</h2><span class="panel-hint">Review before submit</span></div>
+            <form>
+              <fieldset class="form-section"><legend><span>1</span>Basics</legend><div class="field"><label for="form-name">Name</label><input id="form-name" placeholder="Example"></div></fieldset>
+              <div class="form-check-spacer" aria-hidden="true"></div>
+              <div class="form-actions form-actions-sticky"><a class="button button-secondary" href="#cancel">Cancel</a><button class="button" type="submit">Create</button></div>
+            </form>
+          </section>
+        </div>
         <p class="muted" id="tertiary">Supporting information</p>
       </div>
     </main>
@@ -112,6 +114,8 @@ try:
           const panelHead = document.querySelector('.panel-head');
           const row = document.querySelector('.app-table-row');
           const rowLink = document.querySelector('.app-row-link');
+          const formPage = document.querySelector('.form-page');
+          const container = document.querySelector('.portal-container');
           const formPanel = document.querySelector('.form-panel');
           const formActions = document.querySelector('.form-actions-sticky');
           document.querySelector('.form-check-spacer').style.height = '900px';
@@ -145,6 +149,9 @@ try:
             rowShadow: getComputedStyle(row).boxShadow,
             rowGap: getComputedStyle(rowLink).gap,
             rowPadding: getComputedStyle(rowLink).padding,
+            formPageWidth: formPage.getBoundingClientRect().width,
+            formPageLeft: formPage.getBoundingClientRect().left,
+            containerLeft: container.getBoundingClientRect().left,
             formPanelOverflow: getComputedStyle(formPanel).overflow,
             formActionPosition: getComputedStyle(formActions).position,
             formActionBottomAtScroll: actionBottomAtScroll,
@@ -178,6 +185,8 @@ try:
     check(desktop["rowShadow"] == "none", "application rows must use spacing instead of divider lines")
     check(desktop["rowGap"] == "16px", "application row spacing must use a 4px increment")
     check(desktop["rowPadding"] == "16px 20px", "application row padding must use 4px increments")
+    check(desktop["formPageWidth"] >= 840, "desktop form should use a readable wide content column")
+    check(abs(desktop["formPageLeft"] - desktop["containerLeft"]) <= 1, "desktop form should align with the main content column")
     check(desktop["formPanelOverflow"] == "clip", "form panels must not clip sticky actions with a scroll container")
     check(desktop["formActionPosition"] == "sticky", "form actions must remain sticky while editing")
     check(abs(desktop["formActionBottomAtScroll"] - 900) <= 1, "form actions must stay pinned to the viewport bottom while scrolling")
