@@ -231,7 +231,7 @@
             <article class="level-requirement{{if .Met}} is-met{{else}} is-unmet{{end}}">
               <div class="level-requirement-head">
                 <div class="level-requirement-copy">
-                  <h4>{{.Label}}</h4>
+                  <h4 id="{{requirementLabelID .Key}}">{{.Label}}</h4>
                   {{with requirementScopeHint .}}<p>{{.}}</p>{{end}}
                 </div>
                 <span class="level-requirement-status">{{requirementStatusLabel .Met}}</span>
@@ -241,7 +241,7 @@
                 <span>{{.Current}} / {{.Target}} {{requirementUnit .Unit}}</span>
                 <span>{{requirementOperator .Operator}}</span>
               </div>
-              <progress class="level-requirement-progress" value="{{progressValue .Current .Target}}" max="{{progressMax .Target}}">{{.Current}} / {{.Target}} {{requirementUnit .Unit}}</progress>
+              <progress class="level-requirement-progress" aria-labelledby="{{requirementLabelID .Key}}" value="{{progressValue .Current .Target}}" max="{{progressMax .Target}}">{{.Current}} / {{.Target}} {{requirementUnit .Unit}}</progress>
               {{else}}
               <p class="level-requirement-condition">当前 {{.Current}} {{requirementUnit .Unit}}，{{requirementOperator .Operator}} {{.Target}} {{requirementUnit .Unit}}</p>
               {{end}}
@@ -293,8 +293,18 @@
     {{end}}
   </div>
   {{else}}
-  <div class="panel-body">
-    <p class="level-progress-sync-fallback">等级条件暂时无法同步</p>
+  <div class="level-progress-body">
+    <div class="level-progress-summary">
+      <section class="level-progress-summary-card" aria-labelledby="level-progress-current-fallback-title">
+        <span class="level-progress-summary-label" id="level-progress-current-fallback-title">当前等级</span>
+        <strong class="level-progress-summary-value">{{.Layout.TrustLevel}}</strong>
+        <span class="level-progress-summary-text">当前同步等级</span>
+      </section>
+    </div>
+    <section class="level-progress-section level-progress-state" aria-labelledby="level-progress-sync-title">
+      <h3 id="level-progress-sync-title">条件状态</h3>
+      <p class="level-progress-sync-fallback">等级条件暂时无法同步</p>
+    </section>
   </div>
   {{end}}
 </section>

@@ -116,6 +116,16 @@ func TestRendererShowsAutomaticLevelProgressOnHomepage(t *testing.T) {
 	if !strings.Contains(body, "<progress") {
 		t.Fatalf("automatic level progress should use native progress markup: %q", body)
 	}
+	for _, expected := range []string{
+		`id="level-requirement-days-visited-label"`,
+		`<progress class="level-requirement-progress" aria-labelledby="level-requirement-days-visited-label"`,
+		`id="level-requirement-likes-received-label"`,
+		`<progress class="level-requirement-progress" aria-labelledby="level-requirement-likes-received-label"`,
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("automatic level progress missing accessible progress markup %q in %q", expected, body)
+		}
+	}
 }
 
 func TestRendererShowsAtMostLevelRequirementAsText(t *testing.T) {
@@ -226,10 +236,13 @@ func TestRendererShowsNilLevelProgressFallbackWithoutBreakingHomepage(t *testing
 		t.Fatalf("Render() error = %v", err)
 	}
 	body := response.Body.String()
-	for _, expected := range []string{"等级条件暂时无法同步", "workspace-grid", "app-table", "onboarding-list"} {
+	for _, expected := range []string{"当前等级", ">2<", "等级条件暂时无法同步", "workspace-grid", "app-table", "onboarding-list"} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("nil level progress is missing %q in %q", expected, body)
 		}
+	}
+	if strings.Contains(body, `id="level-progress-target-title"`) {
+		t.Fatalf("nil level progress should not render a target-level summary card: %q", body)
 	}
 }
 
@@ -254,6 +267,33 @@ func TestRendererEscapesLevelProgressLabels(t *testing.T) {
 	body := response.Body.String()
 	if strings.Contains(body, `<script>alert(1)</script>`) || !strings.Contains(body, `&lt;script&gt;alert(1)&lt;/script&gt;`) {
 		t.Fatalf("level progress labels are not escaped: %q", body)
+	}
+}
+
+func TestRendererShowsLocalizedFallbackForBlankRequirementGroup(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		PromotionMode: "automatic",
+		Requirements: []identity.LevelRequirement{
+			{Key: "custom_metric", Label: "自定义条件", Group: "", Scope: "account_lifetime", Current: 1, Target: 2, Operator: "at_least", Unit: "count", Met: false},
+		},
+		GeneratedAt: time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
+	}))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, "其他条件") {
+		t.Fatalf("blank requirement group should use localized fallback in %q", body)
+	}
+	if strings.Contains(body, ">other<") {
+		t.Fatalf("blank requirement group should not expose raw fallback key in %q", body)
 	}
 }
 
@@ -438,7 +478,7 @@ func homepageRenderData(levelProgress *identity.LevelProgressSnapshot) map[strin
 			Description: "Example description",
 			Status:      domain.StatusApproved,
 		}},
-		"Layout":        Layout{Active: "apps", DisplayName: "Portal User"},
+		"Layout":        Layout{Active: "apps", DisplayName: "Portal User", TrustLevel: 2},
 		"LevelProgress": levelProgress,
 	}
 }

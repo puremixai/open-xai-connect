@@ -46,6 +46,7 @@ func NewRenderer() (*Renderer, error) {
 		"blockingStatusLabel":    blockingStatusLabel,
 		"promotionModeLabel":     promotionModeLabel,
 		"requirementScopeHint":   requirementScopeHint,
+		"requirementLabelID":     requirementLabelID,
 		"requirementsMet":        requirementsMet,
 		"progressValue":          progressValue,
 		"progressMax":            progressMax,
@@ -194,10 +195,10 @@ func levelGroupLabel(group string) string {
 		return "互动参与"
 	case "compliance":
 		return "合规与账号状态"
-	case "":
+	case "", "other":
 		return "其他条件"
 	default:
-		return group
+		return "其他条件"
 	}
 }
 
@@ -270,6 +271,38 @@ func requirementScopeHint(requirement identity.LevelRequirement) string {
 	default:
 		return ""
 	}
+}
+
+func requirementLabelID(key string) string {
+	key = strings.TrimSpace(strings.ToLower(key))
+	if key == "" {
+		key = "other"
+	}
+	var builder strings.Builder
+	builder.WriteString("level-requirement-")
+	lastHyphen := false
+	for _, r := range key {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			builder.WriteRune(r)
+			lastHyphen = false
+		case r == '-', r == '_', r == ' ':
+			if !lastHyphen {
+				builder.WriteByte('-')
+				lastHyphen = true
+			}
+		default:
+			if !lastHyphen {
+				builder.WriteByte('-')
+				lastHyphen = true
+			}
+		}
+	}
+	id := strings.Trim(builder.String(), "-")
+	if id == "level-requirement" {
+		id = "level-requirement-other"
+	}
+	return id + "-label"
 }
 
 func requirementsMet(value *bool) bool {
