@@ -127,6 +127,28 @@ func TestPortalStylesInsetApplicationDetailSteps(t *testing.T) {
 	}
 }
 
+func TestPortalCSSDefinesReferenceStyleForLevelProgressHome(t *testing.T) {
+	stylesheet, err := staticFS.ReadFile("static/portal.css")
+	if err != nil {
+		t.Fatalf("read portal.css: %v", err)
+	}
+	css := string(stylesheet)
+	for _, marker := range []string{
+		".level-progress-page {",
+		"--level-bg-page: #f0f0f0;",
+		".level-progress-page .portal-topbar",
+		".level-progress-page .level-progress-panel",
+		".level-progress-page .level-progress-ring",
+		".level-progress-ring-caption",
+		".level-progress-page .level-progress-requirement-track",
+		".level-progress-page .level-progress-badge",
+	} {
+		if !strings.Contains(css, marker) {
+			t.Fatalf("portal.css missing reference homepage marker %q", marker)
+		}
+	}
+}
+
 func TestPortalFormSeparatesAuthorizationSectionFromLogo(t *testing.T) {
 	stylesheet, err := staticFS.ReadFile("static/portal.css")
 	if err != nil {

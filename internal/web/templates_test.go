@@ -128,6 +128,53 @@ func TestRendererShowsAutomaticLevelProgressOnHomepage(t *testing.T) {
 	}
 }
 
+func TestRendererUsesReferenceStyleMarkupForLevelProgressHome(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	data := homepageRenderData(&identity.LevelProgressSnapshot{
+		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
+		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
+		PromotionMode: "automatic",
+		RequirementsMet: func() *bool {
+			value := false
+			return &value
+		}(),
+		Requirements: []identity.LevelRequirement{
+			{Key: "days_visited", Label: "访问天数", Group: "activity", Current: 40, Target: 50, Operator: "at_least", Unit: "days"},
+		},
+	})
+	data["Layout"] = Layout{Active: "home", DisplayName: "Portal User", TrustLevel: 2}
+	response := httptest.NewRecorder()
+	if err := renderer.Render(response, "level-progress", data); err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+
+	body := response.Body.String()
+	for _, marker := range []string{
+		`class="portal-body level-progress-page"`,
+		`class="panel-head level-progress-panel-head"`,
+		`class="panel-hint level-progress-panel-subtitle"`,
+		`class="level-progress-badge`,
+		`class="level-progress-ring level-progress-ring-current"`,
+		`class="level-progress-ring level-progress-ring-target"`,
+		`class="level-progress-ring-caption"`,
+		`class="level-progress-ring level-progress-ring-mode"`,
+		`class="level-progress-requirement-meter"`,
+		`class="level-progress-requirement-track"`,
+	} {
+		if !strings.Contains(body, marker) {
+			t.Fatalf("reference-style homepage markup missing %q in %q", marker, body)
+		}
+	}
+	for _, marker := range []string{"workspace-grid", "app-table", "onboarding-list"} {
+		if strings.Contains(body, marker) {
+			t.Fatalf("reference-style homepage unexpectedly contains app marker %q", marker)
+		}
+	}
+}
+
 func TestRendererShowsAtMostLevelRequirementAsText(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {

@@ -1,7 +1,8 @@
 from pathlib import Path
-import base64
+import atexit
 import os
 import subprocess
+import tempfile
 
 
 git_ref = os.environ.get("PORTAL_STYLE_GIT_REF")
@@ -81,7 +82,10 @@ html = f"""<!doctype html>
   </div>
 </body>
 </html>"""
-url = "data:text/html;base64," + base64.b64encode(html.encode("utf-8")).decode("ascii")
+fixture_path = Path(tempfile.gettempdir()) / f"portal-style-check-{os.getpid()}.html"
+fixture_path.write_text(html, encoding="utf-8")
+atexit.register(lambda: fixture_path.unlink(missing_ok=True))
+url = fixture_path.as_uri()
 failures = []
 
 

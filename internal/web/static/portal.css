@@ -547,6 +547,258 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 .level-blocking-label { color: var(--text); font-size: 13px; }
 .level-blocking-status { color: var(--text-2); font-size: 12px; font-weight: 500; }
 
+/* Homepage reference treatment -------------------------------------------- */
+
+/* The shared level-progress partial also appears on the app list. These
+ * defaults keep that page's existing information hierarchy intact while the
+ * homepage receives the reference-specific visual treatment below. */
+.level-progress-ring { display: block; }
+.level-progress-ring-caption { display: none; }
+.level-progress-summary-card-mode { grid-column: 1 / -1; }
+.level-progress-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  color: var(--text-2); background: var(--surface-2);
+  border-radius: 9999px;
+  font-size: 12px; font-weight: 600; line-height: 1.5; white-space: nowrap;
+}
+.level-progress-badge.is-met { color: var(--success); background: #f0fdf4; }
+.level-progress-badge.is-unmet { color: var(--warning); background: #fffbeb; }
+
+.level-progress-page {
+  --level-bg-page: #f0f0f0;
+  --level-surface: #ffffff;
+  --level-surface-subtle: #ebebeb;
+  --level-border: #e0e0e0;
+  --level-border-strong: #cccccc;
+  --level-text: #111111;
+  --level-text-secondary: #555555;
+  --level-text-tertiary: #888888;
+  --level-success: #22c55e;
+  --level-success-bg: #f0fdf4;
+  --level-warning: #f59e0b;
+  --level-warning-bg: #fffbeb;
+  color-scheme: light;
+  color: var(--level-text);
+  background-color: var(--level-bg-page);
+  background-image:
+    radial-gradient(circle, rgba(0, 0, 0, .07) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, .03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, .03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 16px 16px, 0 0, 0 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.level-progress-page .portal-topbar {
+  background: rgba(255, 255, 255, .94);
+  border-bottom: 1px solid var(--level-border);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.level-progress-page .topbar-inner { height: 56px; padding: 0 24px; }
+.level-progress-page .portal-brand { gap: 8px; font-size: 16px; font-weight: 700; }
+.level-progress-page .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+.level-progress-page .brand-mark { width: 30px; height: 30px; border-radius: 6px; }
+.level-progress-page .portal-shell { min-height: calc(100dvh - 56px); }
+.level-progress-page .portal-sidebar {
+  top: 56px;
+  height: calc(100dvh - 56px);
+  padding: 32px 16px 20px 10px;
+  background: transparent;
+  box-shadow: none;
+}
+.level-progress-page .portal-nav { gap: 4px; }
+.level-progress-page .portal-nav a {
+  min-height: 36px; padding: 8px 12px;
+  color: var(--level-text-secondary);
+  border-radius: 9999px;
+  font-size: 14px; font-weight: 400;
+}
+.level-progress-page .portal-nav a:hover { color: var(--level-text); background: #e8e8e8; }
+.level-progress-page .portal-nav a.is-active { color: #fff; background: var(--level-text); font-weight: 600; }
+.level-progress-page .portal-main { padding: 32px 24px; }
+.level-progress-page .portal-container { max-width: 1304px; }
+.level-progress-page .topbar-link { color: var(--level-text-secondary); }
+.level-progress-page .topbar-link:hover { color: var(--level-text); }
+.level-progress-page .user-chip:hover { background: #e8e8e8; }
+.level-progress-page .user-avatar { color: var(--level-text); background: #f5f5f5; box-shadow: none; }
+.level-progress-page .role-label { color: var(--level-text-secondary); background: #ebebeb; }
+.level-progress-page .logout-button:hover { color: var(--level-text); background: #e8e8e8; }
+
+.level-progress-page .level-progress-panel {
+  margin-bottom: 24px;
+  background: var(--level-surface);
+  border: 1px solid var(--level-border);
+  border-radius: 16px;
+  box-shadow: none;
+}
+.level-progress-page .level-progress-panel-head {
+  align-items: flex-start;
+  padding: 24px;
+}
+.level-progress-page .level-progress-panel-heading { display: grid; gap: 12px; min-width: 0; }
+.level-progress-page .level-progress-panel-head h2 {
+  color: var(--level-text);
+  font-size: 16px; font-weight: 700; letter-spacing: 0; line-height: 1.4;
+}
+.level-progress-page .level-progress-panel-subtitle {
+  display: block;
+  color: var(--level-text-tertiary);
+  font-size: 13px; font-weight: 400; line-height: 1.5;
+  white-space: normal;
+}
+.level-progress-page .level-progress-badge { flex: 0 0 auto; }
+.level-progress-page .level-progress-body { gap: 0; padding: 0 24px 24px; }
+.level-progress-page .level-progress-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.level-progress-page .level-progress-summary-card {
+  display: flex; align-items: center; justify-content: flex-start;
+  min-width: 0; padding: 0;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: center;
+}
+.level-progress-page .level-progress-ring {
+  position: relative;
+  display: flex; flex: 0 0 auto;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  width: 88px; height: 88px;
+  border: 5px solid var(--level-surface-subtle);
+  border-radius: 50%;
+  background: var(--level-surface);
+}
+.level-progress-page .level-progress-ring.level-progress-ring-current { border-color: var(--level-warning); }
+.level-progress-page .level-progress-ring.level-progress-ring-target { border-color: var(--level-border-strong); border-style: dashed; }
+.level-progress-page .level-progress-ring.level-progress-ring-mode { border-color: var(--level-text); }
+.level-progress-page .level-progress-summary-value {
+  display: block; margin: 0;
+  color: var(--level-text);
+  font-size: 22px; font-weight: 700; line-height: 1.1; letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.level-progress-page .level-progress-summary-inline {
+  display: block; max-width: 70px;
+  color: var(--level-text);
+  font-size: 11px; font-weight: 700; line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.level-progress-page .level-progress-ring-caption {
+  display: block;
+  color: var(--level-text-tertiary);
+  font-size: 10px; line-height: 1.2;
+}
+.level-progress-page .level-progress-summary-label {
+  color: var(--level-text-tertiary);
+  font-size: 12px; font-weight: 600; letter-spacing: .05em;
+}
+.level-progress-page .level-progress-summary-text { color: var(--level-text-secondary); font-size: 12px; }
+.level-progress-page .level-progress-summary-card-mode { grid-column: auto; }
+
+.level-progress-page .level-progress-section {
+  display: grid; gap: 16px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+.level-progress-page .level-progress-section + .level-progress-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--level-border);
+}
+.level-progress-page .level-progress-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.level-progress-page .level-progress-section-head h3,
+.level-progress-page .level-progress-group-head h3 {
+  color: var(--level-text-tertiary);
+  font-size: 12px; font-weight: 600; letter-spacing: .05em; line-height: 1.4;
+  text-transform: uppercase;
+}
+.level-progress-page .level-progress-meta { color: var(--level-text-tertiary); font-size: 12px; }
+.level-progress-page .level-progress-groups { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.level-progress-page .level-progress-group { display: grid; gap: 16px; min-width: 0; }
+.level-progress-page .level-progress-requirements { display: grid; gap: 14px; }
+.level-progress-page .level-requirement {
+  display: grid; gap: 8px; padding: 0;
+  background: transparent;
+  border: 0; border-radius: 0; box-shadow: none;
+}
+.level-progress-page .level-requirement-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.level-progress-page .level-requirement-copy { display: grid; gap: 4px; min-width: 0; }
+.level-progress-page .level-requirement-copy h4 { color: var(--level-text); font-size: 14px; font-weight: 400; line-height: 1.4; }
+.level-progress-page .level-requirement-copy p { color: var(--level-text-tertiary); font-size: 12px; }
+.level-progress-page .level-requirement-status {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  color: var(--level-warning);
+  background: var(--level-warning-bg);
+  border-radius: 9999px;
+  font-size: 12px; font-weight: 600; line-height: 1.5;
+}
+.level-progress-page .level-requirement.is-met .level-requirement-status { color: var(--level-success); background: var(--level-success-bg); }
+.level-progress-page .level-progress-requirement-meter { display: grid; gap: 6px; }
+.level-progress-page .level-requirement-progress-copy {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  color: var(--level-text-secondary); font-size: 13px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.level-progress-page .level-progress-requirement-track {
+  height: 8px;
+  overflow: hidden;
+  background: var(--level-surface-subtle);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
+}
+.level-progress-page .level-requirement-progress {
+  display: block;
+  width: 100%; height: 8px;
+  background: transparent;
+  border-radius: 4px;
+  accent-color: var(--level-warning);
+}
+.level-progress-page .level-requirement.is-met .level-requirement-progress { accent-color: var(--level-success); }
+.level-progress-page .level-requirement-progress::-webkit-progress-bar { background: transparent; border-radius: 4px; }
+.level-progress-page .level-requirement-progress::-webkit-progress-value { background: linear-gradient(90deg, #f59e0b, #fbbf24); border-radius: 4px; }
+.level-progress-page .level-requirement.is-met .level-requirement-progress::-webkit-progress-value { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.level-progress-page .level-requirement-progress::-moz-progress-bar { background: linear-gradient(90deg, #f59e0b, #fbbf24); border-radius: 4px; }
+.level-progress-page .level-requirement.is-met .level-requirement-progress::-moz-progress-bar { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.level-progress-page .level-requirement-condition {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--level-text-secondary);
+  background: var(--level-surface);
+  border: 1px solid var(--level-border);
+  border-radius: 10px;
+  font-size: 13px; line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.level-progress-page .level-progress-state p { color: var(--level-text-secondary); font-size: 13px; }
+.level-progress-page .level-progress-state .level-progress-meta { margin-top: 0; }
+.level-progress-page .level-blocking-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.level-progress-page .level-blocking-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px;
+  background: var(--level-surface);
+  border: 1px solid var(--level-border);
+  border-radius: 10px;
+  box-shadow: none;
+}
+.level-progress-page .level-blocking-item.is-met { background: var(--level-success-bg); border-color: rgba(34, 197, 94, .2); }
+.level-progress-page .level-blocking-item.is-unmet { background: #fef2f2; border-color: rgba(239, 68, 68, .2); }
+.level-progress-page .level-blocking-label { color: var(--level-text); font-size: 13px; }
+.level-progress-page .level-blocking-status { color: var(--level-text-secondary); font-size: 12px; font-weight: 600; }
+.level-progress-page .level-blocking-item.is-met .level-blocking-status { color: var(--level-success); }
+.level-progress-page .level-blocking-item.is-unmet .level-blocking-status { color: #ef4444; }
+
+
 .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: var(--space-6); align-items: start; }
 
 .app-table-panel { overflow: hidden; }
@@ -968,6 +1220,54 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
   .app-row-link { grid-template-columns: minmax(0, 1fr) 96px; }
   .app-meta { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .app-row-status .updated { font-size: 11px; }
+}
+
+/* The homepage selectors intentionally carry a page scope, so repeat the
+ * responsive overrides with the same scope to keep the shared shell usable
+ * at narrow widths. */
+@media (max-width: 840px) {
+  .level-progress-page .topbar-inner { padding: 0 16px; }
+  .level-progress-page .portal-shell { display: block; }
+  .level-progress-page .portal-sidebar {
+    position: static;
+    height: auto;
+    padding: 0 16px;
+    box-shadow: inset 0 -1px 0 var(--level-border);
+  }
+  .level-progress-page .portal-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    overflow: visible;
+  }
+  .level-progress-page .portal-nav a { min-height: 44px; }
+  .level-progress-page .topbar-link { display: none; }
+}
+
+@media (max-width: 720px) {
+  .level-progress-page .portal-main { padding: 24px 16px 16px; }
+  .level-progress-page .portal-container { max-width: none; }
+  .level-progress-page .level-progress-panel-head { display: grid; gap: 16px; padding: 20px 16px; }
+  .level-progress-page .level-progress-body { padding: 0 16px 16px; }
+  .level-progress-page .level-progress-summary { grid-template-columns: 1fr; gap: 20px; }
+  .level-progress-page .level-progress-section-head,
+  .level-progress-page .level-requirement-head,
+  .level-progress-page .level-requirement-progress-copy,
+  .level-progress-page .level-blocking-item { display: grid; }
+  .level-progress-page .level-progress-section-head { gap: 8px; }
+  .level-progress-page .level-progress-meta { white-space: normal; }
+  .level-progress-page .level-blocking-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 360px) {
+  .level-progress-page .portal-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    overflow: visible;
+  }
+  .level-progress-page .portal-nav a { justify-content: center; min-width: 0; padding: 8px; }
 }
 
 /* 9. Reduced motion -------------------------------------------------------------------------- */

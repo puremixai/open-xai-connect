@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="zh-CN">
 {{template "portal-head" .}}
-<body class="portal-body">
+<body class="portal-body{{if eq .Layout.Active "home"}} level-progress-page{{end}}">
 <a class="skip-link" href="#main-content">跳到主要内容</a>
 {{template "portal-topbar" .}}
 <div class="portal-shell">
