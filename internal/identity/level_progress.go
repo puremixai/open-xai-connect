@@ -104,6 +104,9 @@ func (s LevelProgressSnapshot) ValidateFor(discourseID int64) error {
 	if s.NextLevel.ID != s.CurrentLevel.ID+1 {
 		return fmt.Errorf("next level id %d does not match current level %d", s.NextLevel.ID, s.CurrentLevel.ID)
 	}
+	if s.CurrentLevel.ID == 3 && s.NextLevel.ID == 4 && s.PromotionMode != "manual" {
+		return errors.New("level 3 to 4 promotion must use manual promotion mode")
+	}
 	if err := validateLevelInfo(*s.NextLevel); err != nil {
 		return fmt.Errorf("invalid next level: %w", err)
 	}

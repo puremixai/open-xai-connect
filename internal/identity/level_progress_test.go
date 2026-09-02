@@ -71,6 +71,16 @@ func TestLevelProgressSnapshotValidateFor(t *testing.T) {
 			wantErr: "unknown promotion mode",
 		},
 		{
+			name: "tl3 to tl4 requires manual promotion",
+			mutate: func(s *LevelProgressSnapshot) {
+				s.CurrentLevel = LevelInfo{ID: 3, Key: "pro", Label: "进阶用户"}
+				s.NextLevel = &LevelInfo{ID: 4, Key: "expert", Label: "专家用户"}
+				s.PromotionMode = "automatic"
+				s.RequirementsMet = boolPtr(false)
+			},
+			wantErr: "must use manual promotion mode",
+		},
+		{
 			name:    "automatic without requirements met",
 			mutate:  func(s *LevelProgressSnapshot) { s.RequirementsMet = nil },
 			wantErr: "requires requirements_met",
@@ -149,6 +159,17 @@ func TestLevelProgressSnapshotValidateForRejectsNextLevelOnLevel4(t *testing.T) 
 	snapshot.PromotionMode = "none"
 	snapshot.RequirementsMet = nil
 	if err := snapshot.ValidateFor(42); err == nil || !strings.Contains(err.Error(), "level 4 must not include next_level") {
+		t.Fatalf("ValidateFor() error = %v", err)
+	}
+}
+
+func TestLevelProgressSnapshotValidateForAllowsManualTl3ToTl4(t *testing.T) {
+	snapshot := validLevelProgressSnapshot()
+	snapshot.CurrentLevel = LevelInfo{ID: 3, Key: "pro", Label: "进阶用户"}
+	snapshot.NextLevel = &LevelInfo{ID: 4, Key: "expert", Label: "专家用户"}
+	snapshot.PromotionMode = "manual"
+	snapshot.RequirementsMet = nil
+	if err := snapshot.ValidateFor(42); err != nil {
 		t.Fatalf("ValidateFor() error = %v", err)
 	}
 }
