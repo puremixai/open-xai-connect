@@ -215,7 +215,7 @@ func TestHTTPHandlerAllowsOwnerToEditAnUnpublishedApplication(t *testing.T) {
 	}
 }
 
-func TestHTTPHandlerLoadsLevelProgressForHomepage(t *testing.T) {
+func TestHTTPHandlerDoesNotLoadLevelProgressForAppOverview(t *testing.T) {
 	service, _ := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
 	if _, err := service.CreateDraft(context.Background(), "sub_1", validDraftInput()); err != nil {
 		t.Fatalf("CreateDraft() error = %v", err)
@@ -252,26 +252,19 @@ func TestHTTPHandlerLoadsLevelProgressForHomepage(t *testing.T) {
 	mux.ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
-		t.Fatalf("homepage status = %d, body = %q", response.Code, response.Body.String())
+		t.Fatalf("app overview status = %d, body = %q", response.Code, response.Body.String())
 	}
 	if got := response.Header().Get("Cache-Control"); got != "no-store" {
 		t.Fatalf("Cache-Control = %q, want no-store", got)
 	}
-	if progress.calls != 1 {
-		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)
-	}
-	if len(progress.subjects) != 1 || progress.subjects[0] != "sub_1" {
-		t.Fatalf("CurrentLevelProgress() subjects = %#v", progress.subjects)
+	if progress.calls != 0 {
+		t.Fatalf("CurrentLevelProgress() calls = %d, want 0", progress.calls)
 	}
 	if renderer.lastRender == nil || renderer.lastRender.name != "app-list" {
 		t.Fatalf("render = %#v", renderer.lastRender)
 	}
-	levelProgress, ok := renderer.lastRender.data["LevelProgress"].(*identity.LevelProgressSnapshot)
-	if !ok || levelProgress == nil {
-		t.Fatalf("LevelProgress render data = %#v", renderer.lastRender.data["LevelProgress"])
-	}
-	if levelProgress.CurrentLevel.Label != "基础用户" || levelProgress.NextLevel == nil || levelProgress.NextLevel.Label != "成员" {
-		t.Fatalf("LevelProgress snapshot = %#v", levelProgress)
+	if _, ok := renderer.lastRender.data["LevelProgress"]; ok {
+		t.Fatalf("app overview render data unexpectedly includes LevelProgress: %#v", renderer.lastRender.data["LevelProgress"])
 	}
 }
 
@@ -370,18 +363,14 @@ func TestHTTPHandlerDegradesWhenLevelProgressLookupFails(t *testing.T) {
 	if got := response.Header().Get("Cache-Control"); got != "no-store" {
 		t.Fatalf("Cache-Control = %q, want no-store", got)
 	}
-	if progress.calls != 1 {
-		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)
+	if progress.calls != 0 {
+		t.Fatalf("CurrentLevelProgress() calls = %d, want 0", progress.calls)
 	}
 	if renderer.lastRender == nil || renderer.lastRender.name != "app-list" {
 		t.Fatalf("render = %#v", renderer.lastRender)
 	}
-	levelProgress, ok := renderer.lastRender.data["LevelProgress"].(*identity.LevelProgressSnapshot)
-	if !ok {
-		t.Fatalf("LevelProgress render data type = %T", renderer.lastRender.data["LevelProgress"])
-	}
-	if levelProgress != nil {
-		t.Fatalf("LevelProgress render data = %#v, want nil", levelProgress)
+	if _, ok := renderer.lastRender.data["LevelProgress"]; ok {
+		t.Fatalf("app overview render data unexpectedly includes LevelProgress: %#v", renderer.lastRender.data["LevelProgress"])
 	}
 	body := response.Body.String()
 	for _, marker := range []string{

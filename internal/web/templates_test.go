@@ -54,8 +54,12 @@ func TestRendererHidesLevelNavigationOnApplicationOverview(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Render() error = %v", err)
 	}
-	if strings.Contains(response.Body.String(), `href="/">我的等级</a>`) {
-		t.Fatalf("application overview must not show the level navigation link: %q", response.Body.String())
+	body := response.Body.String()
+	if strings.Contains(body, `href="/">我的等级</a>`) {
+		t.Fatalf("application overview must not show the level navigation link: %q", body)
+	}
+	if strings.Contains(body, `class="level-progress-panel"`) || strings.Contains(body, "用户等级进度") {
+		t.Fatalf("application overview must not show the level progress panel: %q", body)
 	}
 }
 
@@ -93,7 +97,7 @@ func TestRendererShowsAutomaticLevelProgressOnHomepage(t *testing.T) {
 		t.Fatalf("NewRenderer() error = %v", err)
 	}
 	response := httptest.NewRecorder()
-	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+	err = renderer.Render(response, "level-progress", levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
 		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
 		PromotionMode: "automatic",
@@ -150,7 +154,7 @@ func TestRendererUsesReferenceStyleMarkupForLevelProgressHome(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRenderer() error = %v", err)
 	}
-	data := homepageRenderData(&identity.LevelProgressSnapshot{
+	data := levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
 		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
 		PromotionMode: "automatic",
@@ -198,7 +202,7 @@ func TestRendererShowsAtMostLevelRequirementAsText(t *testing.T) {
 		t.Fatalf("NewRenderer() error = %v", err)
 	}
 	response := httptest.NewRecorder()
-	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+	err = renderer.Render(response, "level-progress", levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
 		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
 		PromotionMode: "automatic",
@@ -231,7 +235,7 @@ func TestRendererShowsManualLevelProgressState(t *testing.T) {
 		t.Fatalf("NewRenderer() error = %v", err)
 	}
 	response := httptest.NewRecorder()
-	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+	err = renderer.Render(response, "level-progress", levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
 		NextLevel:     &identity.LevelInfo{ID: 4, Key: "leader", Label: "领导者"},
 		PromotionMode: "manual",
@@ -256,7 +260,7 @@ func TestRendererShowsTerminalAndLockedLevelStates(t *testing.T) {
 	}
 
 	maxResponse := httptest.NewRecorder()
-	err = renderer.Render(maxResponse, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+	err = renderer.Render(maxResponse, "level-progress", levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 4, Key: "leader", Label: "领导者"},
 		PromotionMode: "none",
 		GeneratedAt:   time.Date(2026, time.September, 2, 8, 0, 0, 0, time.UTC),
@@ -269,7 +273,7 @@ func TestRendererShowsTerminalAndLockedLevelStates(t *testing.T) {
 	}
 
 	lockedResponse := httptest.NewRecorder()
-	err = renderer.Render(lockedResponse, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+	err = renderer.Render(lockedResponse, "level-progress", levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
 		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
 		PromotionMode: "locked",
@@ -289,18 +293,18 @@ func TestRendererShowsTerminalAndLockedLevelStates(t *testing.T) {
 	}
 }
 
-func TestRendererShowsNilLevelProgressFallbackWithoutBreakingHomepage(t *testing.T) {
+func TestRendererShowsNilLevelProgressFallbackOnHomepage(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {
 		t.Fatalf("NewRenderer() error = %v", err)
 	}
 	response := httptest.NewRecorder()
-	err = renderer.Render(response, "app-list", homepageRenderData(nil))
+	err = renderer.Render(response, "level-progress", levelProgressRenderData(nil))
 	if err != nil {
 		t.Fatalf("Render() error = %v", err)
 	}
 	body := response.Body.String()
-	for _, expected := range []string{"当前等级", ">2<", "等级条件暂时无法同步", "workspace-grid", "app-table", "onboarding-list"} {
+	for _, expected := range []string{"当前等级", ">2<", "等级条件暂时无法同步"} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("nil level progress is missing %q in %q", expected, body)
 		}
@@ -316,7 +320,7 @@ func TestRendererEscapesLevelProgressLabels(t *testing.T) {
 		t.Fatalf("NewRenderer() error = %v", err)
 	}
 	response := httptest.NewRecorder()
-	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+	err = renderer.Render(response, "level-progress", levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
 		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
 		PromotionMode: "automatic",
@@ -340,7 +344,7 @@ func TestRendererShowsLocalizedFallbackForBlankRequirementGroup(t *testing.T) {
 		t.Fatalf("NewRenderer() error = %v", err)
 	}
 	response := httptest.NewRecorder()
-	err = renderer.Render(response, "app-list", homepageRenderData(&identity.LevelProgressSnapshot{
+	err = renderer.Render(response, "level-progress", levelProgressRenderData(&identity.LevelProgressSnapshot{
 		CurrentLevel:  identity.LevelInfo{ID: 2, Key: "member", Label: "成员"},
 		NextLevel:     &identity.LevelInfo{ID: 3, Key: "regular", Label: "常规"},
 		PromotionMode: "automatic",
@@ -553,15 +557,9 @@ func TestRendererCanSetNonSuccessStatusBeforeRendering(t *testing.T) {
 	}
 }
 
-func homepageRenderData(levelProgress *identity.LevelProgressSnapshot) map[string]any {
+func levelProgressRenderData(levelProgress *identity.LevelProgressSnapshot) map[string]any {
 	return map[string]any{
-		"Apps": []domain.Application{{
-			ID:          "app_1",
-			Name:        "Example App",
-			Description: "Example description",
-			Status:      domain.StatusApproved,
-		}},
-		"Layout":        Layout{Active: "apps", DisplayName: "Portal User", TrustLevel: 2},
+		"Layout":        Layout{Active: "home", DisplayName: "Portal User", TrustLevel: 2},
 		"LevelProgress": levelProgress,
 	}
 }

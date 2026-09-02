@@ -112,7 +112,7 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.render(w, "app-list", map[string]any{
-		"Apps": apps, "PageTitle": "应用总览", "Layout": h.layoutFor(r, subject, "apps"), "LevelProgress": h.loadLevelProgress(r.Context(), subject),
+		"Apps": apps, "PageTitle": "应用总览", "Layout": h.layoutFor(r, subject, "apps"),
 	})
 }
 
