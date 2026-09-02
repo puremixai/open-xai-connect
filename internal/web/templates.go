@@ -31,6 +31,7 @@ func NewRenderer() (*Renderer, error) {
 		"add":         add,
 		"canSubmit":   canSubmit,
 		"canEdit":     canEdit,
+		"canDelete":   canDelete,
 		"formatTime":  formatTime,
 		"truncate":    truncate,
 		"appInitial":  appInitial,
@@ -108,6 +109,15 @@ func canSubmit(status domain.ApplicationStatus) bool {
 
 func canEdit(status domain.ApplicationStatus) bool {
 	return canSubmit(status) || status == domain.StatusApproved
+}
+
+func canDelete(status domain.ApplicationStatus) bool {
+	switch status {
+	case domain.StatusDraft, domain.StatusPendingReview, domain.StatusApproved, domain.StatusRejected, domain.StatusChangesRequested, domain.StatusRevoked:
+		return true
+	default:
+		return false
+	}
 }
 
 func formatTime(value time.Time) string {

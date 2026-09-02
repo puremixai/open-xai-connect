@@ -523,6 +523,10 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 .action-panel { padding: 16px 20px; }
 .action-copy { margin: 8px 0 16px; color: var(--text-2); font-size: 13px; }
 .action-stack { display: grid; gap: var(--space-2); }
+.danger-panel { padding: 16px 20px; }
+.danger-panel h2 { color: var(--danger); }
+.danger-panel .action-copy { margin-bottom: var(--space-2); }
+.delete-disclosure { margin-top: var(--space-2); }
 .progress-note { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-2); font-size: 12.5px; }
 .progress-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
 .progress-dot.is-pulsing { animation: progress-pulse 1.8s ease-in-out infinite; }

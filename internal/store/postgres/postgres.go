@@ -207,6 +207,17 @@ func (s *Store) Save(ctx context.Context, app domain.Application) error {
 	return mapError(tx.Commit(ctx))
 }
 
+func (s *Store) Delete(ctx context.Context, id domain.ApplicationID) error {
+	tag, err := s.Pool.Exec(ctx, `DELETE FROM applications WHERE id=$1`, id)
+	if err != nil {
+		return mapError(err)
+	}
+	if tag.RowsAffected() != 1 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
 const applicationSelect = `SELECT id, owner_subject, name, description, logo_url, status,
 	COALESCE(client_id,''), encrypted_client_secret, secret_version, review_note, reviewed_by,
 	created_at, updated_at FROM applications`

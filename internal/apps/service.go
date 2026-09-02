@@ -24,6 +24,7 @@ var (
 	ErrOpenApplicationLimit  = errors.New("open application limit reached")
 	ErrNotOwner              = errors.New("application owner required")
 	ErrInvalidState          = errors.New("application is not editable in its current state")
+	ErrNotDeletable          = errors.New("application is not deletable in its current state")
 	ErrInvalidInput          = errors.New("invalid application input")
 	ErrSensitiveConfirmation = errors.New("recent sensitive-action confirmation required")
 )
@@ -364,6 +365,38 @@ func (s *Service) Revoke(ctx context.Context, subject string, id domain.Applicat
 		return err
 	}
 	return s.auditEvent(ctx, subject, id, "application.revoked")
+}
+
+func (s *Service) Delete(ctx context.Context, subject string, id domain.ApplicationID) error {
+	if err := s.ensureEligible(ctx, subject); err != nil {
+		return err
+	}
+	app, err := s.getOwned(ctx, subject, id)
+	if err != nil {
+		return err
+	}
+	switch app.Status {
+	case domain.StatusApproved:
+		if s.hydra == nil {
+			return errors.New("Hydra client is not initialized")
+		}
+		if app.ClientID == "" {
+			return errors.New("approved application client is not initialized")
+		}
+		if err := s.hydra.DeleteClient(ctx, string(app.ClientID)); err != nil {
+			return err
+		}
+	case domain.StatusDraft, domain.StatusPendingReview, domain.StatusRejected, domain.StatusChangesRequested, domain.StatusRevoked:
+		// These states have no active provisioning operation or OIDC client to clean up.
+	default:
+		return ErrNotDeletable
+	}
+	// Record the destructive action while the application still exists so the
+	// PostgreSQL foreign key can retain the application reference safely.
+	if err := s.auditEvent(ctx, subject, id, "application.deleted"); err != nil {
+		return err
+	}
+	return s.apps.Delete(ctx, id)
 }
 
 func (s *Service) ensureEligible(ctx context.Context, subject string) error {

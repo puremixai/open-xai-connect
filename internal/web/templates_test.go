@@ -153,8 +153,9 @@ func TestRendererShowsCredentialActionsForApprovedApplication(t *testing.T) {
 		`href="/connect/apps/app_1/edit"`,
 		`action="/connect/apps/app_1/secret"`,
 		`action="/connect/apps/app_1/rotate-secret"`,
+		`action="/connect/apps/app_1/delete"`,
 		`name="confirmed_at" value="1787918400"`,
-		"查看 Client Secret", "轮换 Secret",
+		"查看 Client Secret", "轮换 Secret", "删除应用",
 	} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("approved credential action missing %q: %s", expected, body)

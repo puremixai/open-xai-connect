@@ -22,6 +22,7 @@ type ApplicationRepository interface {
 	CountOpenByOwner(context.Context, string) (int, error)
 	Transition(context.Context, domain.ApplicationID, domain.ApplicationStatus, domain.ApplicationStatus, time.Time) (domain.Application, error)
 	Save(context.Context, domain.Application) error
+	Delete(context.Context, domain.ApplicationID) error
 }
 
 type UserRepository interface {

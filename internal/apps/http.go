@@ -222,6 +222,8 @@ func (h *HTTPHandler) item(w http.ResponseWriter, r *http.Request) {
 		h.viewSecret(w, r, subject, id)
 	case r.Method == http.MethodPost && len(parts) == 2 && parts[1] == "rotate-secret":
 		h.rotateSecret(w, r, subject, id)
+	case r.Method == http.MethodPost && len(parts) == 2 && parts[1] == "delete":
+		h.delete(w, r, subject, id)
 	default:
 		w.Header().Set("Allow", "GET, POST")
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -310,6 +312,19 @@ func (h *HTTPHandler) rotateSecret(w http.ResponseWriter, r *http.Request, subje
 		return
 	}
 	http.Redirect(w, r, "/connect/apps/"+string(id), http.StatusSeeOther)
+}
+
+func (h *HTTPHandler) delete(w http.ResponseWriter, r *http.Request, subject string, id domain.ApplicationID) {
+	w.Header().Set("Cache-Control", "no-store")
+	if !h.validCSRF(r) {
+		h.fail(w, http.StatusForbidden, "请求已过期", "CSRF 校验失败")
+		return
+	}
+	if err := h.service.Delete(r.Context(), subject, id); err != nil {
+		h.fail(w, http.StatusBadRequest, "应用未删除", err.Error())
+		return
+	}
+	http.Redirect(w, r, "/connect/apps", http.StatusSeeOther)
 }
 
 func (h *HTTPHandler) authenticated(w http.ResponseWriter, r *http.Request) (string, bool) {

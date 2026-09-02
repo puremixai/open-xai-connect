@@ -10,6 +10,7 @@ import (
 	"connect.xai.run/internal/hydra"
 	"connect.xai.run/internal/identity"
 	"connect.xai.run/internal/secrets"
+	"connect.xai.run/internal/store"
 	"connect.xai.run/internal/store/memory"
 )
 
@@ -47,6 +48,19 @@ func mustTestBox() *secrets.Box {
 		panic(err)
 	}
 	return box
+}
+
+type applicationDeleter interface {
+	Delete(context.Context, string, domain.ApplicationID) error
+}
+
+func requireApplicationDeleter(t *testing.T, service *Service) applicationDeleter {
+	t.Helper()
+	deleter, ok := any(service).(applicationDeleter)
+	if !ok {
+		t.Fatal("application service should expose Delete")
+	}
+	return deleter
 }
 
 func TestCreateDraftRequiresTL1ActiveNonSilencedUser(t *testing.T) {
@@ -279,5 +293,61 @@ func TestUpdateApprovedApplicationSyncsHydraWithoutRotatingSecret(t *testing.T) 
 	if registration.ClientID != "client_1" || registration.ClientName != input.Name || registration.ClientSecret != "existing-secret" ||
 		registration.LogoURI != input.LogoURL || registration.RedirectURIs[0] != input.CallbackURLs[0] || registration.Owner != "sub_1" {
 		t.Fatalf("Hydra registration = %#v", registration)
+	}
+}
+
+func TestDeleteApprovedApplicationRemovesHydraClientAndRecord(t *testing.T) {
+	service, repo := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	app := domain.Application{
+		ID: "app_delete", OwnerSubject: "sub_1", Name: "Delete me",
+		Status: domain.StatusApproved, ClientID: "client_delete",
+	}
+	if err := repo.Create(context.Background(), app); err != nil {
+		t.Fatalf("seed approved app: %v", err)
+	}
+	deleter := requireApplicationDeleter(t, service)
+	if err := deleter.Delete(context.Background(), "sub_1", app.ID); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+	if _, err := repo.Get(context.Background(), app.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("Get() after Delete() error = %v, want store.ErrNotFound", err)
+	}
+	fake := service.hydra.(*hydra.Fake)
+	if len(fake.Deleted) != 1 || fake.Deleted[0] != "client_delete" {
+		t.Fatalf("Hydra deleted clients = %#v", fake.Deleted)
+	}
+	audit, err := service.audit.ListByApplication(context.Background(), app.ID)
+	if err != nil || len(audit) == 0 || audit[len(audit)-1].Action != "application.deleted" {
+		t.Fatalf("delete audit = %#v/%v", audit, err)
+	}
+}
+
+func TestDeleteDraftApplicationDoesNotCallHydra(t *testing.T) {
+	service, repo := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	app := domain.Application{ID: "app_draft_delete", OwnerSubject: "sub_1", Name: "Draft", Status: domain.StatusDraft}
+	if err := repo.Create(context.Background(), app); err != nil {
+		t.Fatalf("seed draft app: %v", err)
+	}
+	deleter := requireApplicationDeleter(t, service)
+	if err := deleter.Delete(context.Background(), "sub_1", app.ID); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+	if fake := service.hydra.(*hydra.Fake); len(fake.Deleted) != 0 {
+		t.Fatalf("Hydra deleted clients = %#v, want none", fake.Deleted)
+	}
+}
+
+func TestDeleteProvisioningApplicationIsRejected(t *testing.T) {
+	service, repo := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	app := domain.Application{ID: "app_provisioning_delete", OwnerSubject: "sub_1", Name: "Provisioning", Status: domain.StatusProvisioning}
+	if err := repo.Create(context.Background(), app); err != nil {
+		t.Fatalf("seed provisioning app: %v", err)
+	}
+	deleter := requireApplicationDeleter(t, service)
+	if err := deleter.Delete(context.Background(), "sub_1", app.ID); !errors.Is(err, ErrNotDeletable) {
+		t.Fatalf("Delete() error = %v, want ErrNotDeletable", err)
+	}
+	if _, err := repo.Get(context.Background(), app.ID); err != nil {
+		t.Fatalf("Get() after rejected Delete() error = %v", err)
 	}
 }

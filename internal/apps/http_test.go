@@ -152,4 +152,15 @@ func TestHTTPHandlerAllowsOwnerToEditAnUnpublishedApplication(t *testing.T) {
 	if approvedEditResponse.Code != http.StatusOK || !strings.Contains(approvedEditResponse.Body.String(), "编辑应用") {
 		t.Fatalf("approved edit response status = %d, body = %q", approvedEditResponse.Code, approvedEditResponse.Body.String())
 	}
+	deleteRequest := httptest.NewRequest(http.MethodPost, "/connect/apps/"+string(app.ID)+"/delete", strings.NewReader(url.Values{"csrf_token": {token}}.Encode()))
+	deleteRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	deleteRequest.AddCookie(cookie)
+	deleteResponse := httptest.NewRecorder()
+	mux.ServeHTTP(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusSeeOther || deleteResponse.Header().Get("Location") != "/connect/apps" {
+		t.Fatalf("delete response status = %d, location = %q, body = %q", deleteResponse.Code, deleteResponse.Header().Get("Location"), deleteResponse.Body.String())
+	}
+	if _, err := repo.Get(nil, app.ID); err == nil {
+		t.Fatal("deleted application is still present")
+	}
 }

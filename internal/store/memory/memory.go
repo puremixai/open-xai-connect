@@ -125,6 +125,16 @@ func (r *ApplicationRepository) Save(_ context.Context, app domain.Application) 
 	return nil
 }
 
+func (r *ApplicationRepository) Delete(_ context.Context, id domain.ApplicationID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, exists := r.data[id]; !exists {
+		return store.ErrNotFound
+	}
+	delete(r.data, id)
+	return nil
+}
+
 type UserRepository struct {
 	mu          sync.RWMutex
 	bySubject   map[domain.UserID]domain.User
