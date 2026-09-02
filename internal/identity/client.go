@@ -47,18 +47,47 @@ func (c *Client) FetchUser(ctx context.Context, discourseID int64) (UserSnapshot
 		return UserSnapshot{}, errors.New("Discourse ID must be positive")
 	}
 	path := "/connect/identity/users/" + strconv.FormatInt(discourseID, 10)
+	var snapshot UserSnapshot
+	if err := c.fetchSignedJSON(ctx, path, &snapshot, "user"); err != nil {
+		return UserSnapshot{}, err
+	}
+	if snapshot.DiscourseID != discourseID || snapshot.Username == "" {
+		return UserSnapshot{}, errors.New("DiscourseConnect returned incomplete user")
+	}
+	return snapshot, nil
+}
+
+func (c *Client) FetchLevelProgress(ctx context.Context, discourseID int64) (LevelProgressSnapshot, error) {
+	if c == nil || c.baseURL == nil || c.httpClient == nil {
+		return LevelProgressSnapshot{}, errors.New("DiscourseConnect client is not initialized")
+	}
+	if discourseID <= 0 {
+		return LevelProgressSnapshot{}, errors.New("Discourse ID must be positive")
+	}
+	path := "/connect/identity/users/" + strconv.FormatInt(discourseID, 10) + "/level-progress"
+	var snapshot LevelProgressSnapshot
+	if err := c.fetchSignedJSON(ctx, path, &snapshot, "level progress"); err != nil {
+		return LevelProgressSnapshot{}, err
+	}
+	if err := snapshot.ValidateFor(discourseID); err != nil {
+		return LevelProgressSnapshot{}, err
+	}
+	return snapshot, nil
+}
+
+func (c *Client) fetchSignedJSON(ctx context.Context, path string, out any, decodeLabel string) error {
 	requestURL := *c.baseURL
 	requestURL.Path = strings.TrimRight(requestURL.Path, "/") + path
 	requestURL.RawQuery = ""
 	requestURL.Fragment = ""
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
 	if err != nil {
-		return UserSnapshot{}, fmt.Errorf("build DiscourseConnect request: %w", err)
+		return fmt.Errorf("build DiscourseConnect request: %w", err)
 	}
 	timestamp := c.now().UTC()
 	nonce, err := randomNonce()
 	if err != nil {
-		return UserSnapshot{}, fmt.Errorf("generate DiscourseConnect nonce: %w", err)
+		return fmt.Errorf("generate DiscourseConnect nonce: %w", err)
 	}
 	body := []byte{}
 	request.Header.Set("Accept", "application/json")
@@ -67,20 +96,16 @@ func (c *Client) FetchUser(ctx context.Context, discourseID int64) (UserSnapshot
 	request.Header.Set("X-Connect-Signature", Sign(c.secret, request.Method, request.URL.RequestURI(), timestamp, nonce, body))
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return UserSnapshot{}, fmt.Errorf("call DiscourseConnect: %w", err)
+		return fmt.Errorf("call DiscourseConnect: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return UserSnapshot{}, fmt.Errorf("DiscourseConnect returned HTTP %d", response.StatusCode)
+		return fmt.Errorf("DiscourseConnect returned HTTP %d", response.StatusCode)
 	}
-	var snapshot UserSnapshot
-	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&snapshot); err != nil {
-		return UserSnapshot{}, fmt.Errorf("decode DiscourseConnect user: %w", err)
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(out); err != nil {
+		return fmt.Errorf("decode DiscourseConnect %s: %w", decodeLabel, err)
 	}
-	if snapshot.DiscourseID != discourseID || snapshot.Username == "" {
-		return UserSnapshot{}, errors.New("DiscourseConnect returned incomplete user")
-	}
-	return snapshot, nil
+	return nil
 }
 
 func randomNonce() (string, error) {
