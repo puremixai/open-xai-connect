@@ -22,12 +22,6 @@ html = f"""<!doctype html>
       <a class="portal-brand" href="#brand">
         <span class="brand-mark">X</span><span class="brand-name">XAI Connect</span>
       </a>
-      <nav class="portal-nav" aria-label="Main">
-        <a class="is-active" href="#apps">Apps</a>
-        <a href="#create">Create app</a>
-        <a href="#review">Reviews</a>
-        <a href="#admin">Operations</a>
-      </nav>
       <div class="topbar-actions">
         <a class="topbar-link" href="#docs">Documentation</a>
         <span class="user-chip">
@@ -37,23 +31,42 @@ html = f"""<!doctype html>
       </div>
     </div>
   </header>
-  <main class="portal-main">
-    <div class="portal-container">
-      <div class="panel-head">
-        <h2>Applications</h2>
-        <div class="toolbar-actions"><a class="text-link" href="#new">New</a></div>
+  <div class="portal-shell">
+    <aside class="portal-sidebar">
+      <nav class="portal-nav" aria-label="Main">
+        <a class="is-active" href="#apps">Apps</a>
+        <a href="#create">Create app</a>
+        <a href="#review">Reviews</a>
+        <a href="#admin">Operations</a>
+      </nav>
+    </aside>
+    <main class="portal-main">
+      <div class="portal-container">
+        <div class="panel-head">
+          <h2>Applications</h2>
+          <div class="toolbar-actions"><a class="text-link" href="#new">New</a></div>
+        </div>
+        <a class="button" href="#primary">Create app</a>
+        <section class="panel app-table-panel">
+          <div class="app-table">
+            <article class="app-table-row">
+              <a class="app-row-link" href="#detail">
+                <span class="app-row-main"><span class="app-mark">X</span><span class="app-row-copy"><span class="app-name">Example</span><span class="app-description">Description</span><span class="app-meta"><span>1 callback</span><span class="detail-mono">ID app_1</span></span></span></span>
+                <span class="app-row-status"><span class="status-badge status-success">Ready</span><span class="updated">Today</span></span>
+                <span class="row-action" aria-hidden="true">Details<span>&gt;</span></span>
+              </a>
+            </article>
+          </div>
+        </section>
+        <section class="panel onboarding-card">
+          <h2>Connect in three steps</h2>
+          <ol class="onboarding-list"><li><span>1</span><div><strong>Create</strong><small>Register the callback.</small></div></li></ol>
+          <a class="button button-secondary button-wide" href="#onboarding">Create now</a>
+        </section>
+        <p class="muted" id="tertiary">Supporting information</p>
       </div>
-      <a class="button" href="#primary">Create app</a>
-      <a class="row-action" href="#detail">Details<span>&gt;</span></a>
-      <span class="status-badge status-success">Ready</span>
-      <section class="panel onboarding-card">
-        <h2>Connect in three steps</h2>
-        <ol class="onboarding-list"><li><span>1</span><div><strong>Create</strong><small>Register the callback.</small></div></li></ol>
-        <a class="button button-secondary button-wide" href="#onboarding">Create now</a>
-      </section>
-      <p class="muted" id="tertiary">Supporting information</p>
-    </div>
-  </main>
+    </main>
+  </div>
 </body>
 </html>"""
 url = "data:text/html;base64," + base64.b64encode(html.encode("utf-8")).decode("ascii")
@@ -85,6 +98,12 @@ try:
           const primary = style('.button');
           const brand = style('.brand-mark');
           const panel = style('.panel');
+          const shell = document.querySelector('.portal-shell');
+          const sidebar = document.querySelector('.portal-sidebar');
+          const nav = document.querySelector('.portal-nav');
+          const panelHead = document.querySelector('.panel-head');
+          const row = document.querySelector('.app-table-row');
+          const rowLink = document.querySelector('.app-row-link');
           const badge = style('.status-success');
           const dot = getComputedStyle(document.querySelector('.status-success'), '::before');
           return {
@@ -99,6 +118,19 @@ try:
             panelBorderWidth: panel.borderTopWidth,
             panelRadius: panel.borderRadius,
             panelShadow: panel.boxShadow,
+            shellDisplay: getComputedStyle(shell).display,
+            sidebarPosition: getComputedStyle(sidebar).position,
+            sidebarWidth: sidebar.getBoundingClientRect().width,
+            navDisplay: getComputedStyle(nav).display,
+            navColumns: getComputedStyle(nav).gridTemplateColumns,
+            navGap: getComputedStyle(nav).gap,
+            navWeight: getComputedStyle(nav.querySelector('a')).fontWeight,
+            buttonWeight: getComputedStyle(document.querySelector('.button')).fontWeight,
+            panelHeadPadding: getComputedStyle(panelHead).padding,
+            panelHeadShadow: getComputedStyle(panelHead).boxShadow,
+            rowShadow: getComputedStyle(row).boxShadow,
+            rowGap: getComputedStyle(rowLink).gap,
+            rowPadding: getComputedStyle(rowLink).padding,
             badgeBackground: badge.backgroundColor,
             badgeText: badge.color,
             badgeDot: dot.backgroundColor
@@ -116,6 +148,19 @@ try:
     check(desktop["panelBorderWidth"] == "0px", "panels must use shadow-as-border without a CSS border")
     check(desktop["panelRadius"] == "12px", "elevated panels must use a 12px radius")
     check(desktop["panelShadow"] != "none", "panels must retain a shadow-as-border boundary")
+    check(desktop["shellDisplay"] == "grid", "desktop portal shell must use a grid layout")
+    check(desktop["sidebarPosition"] == "sticky", "desktop navigation must live in a sticky sidebar")
+    check(desktop["sidebarWidth"] >= 200, "desktop sidebar must preserve a readable navigation width")
+    check(desktop["navDisplay"] == "grid", "desktop navigation must use a stacked layout")
+    check(desktop["navColumns"] != "none", "desktop navigation must expose a vertical grid track")
+    check(desktop["navGap"] == "4px", "navigation spacing must use the 4px scale")
+    check(desktop["navWeight"] == "400", "navigation labels must use regular weight")
+    check(desktop["buttonWeight"] == "400", "button labels must use regular weight")
+    check(desktop["panelHeadPadding"] == "16px 20px", "panel heading spacing must use 4px increments")
+    check(desktop["panelHeadShadow"] == "none", "panel headings must use spacing instead of divider lines")
+    check(desktop["rowShadow"] == "none", "application rows must use spacing instead of divider lines")
+    check(desktop["rowGap"] == "16px", "application row spacing must use a 4px increment")
+    check(desktop["rowPadding"] == "16px 20px", "application row padding must use 4px increments")
     check(desktop["badgeBackground"] == "rgba(0, 0, 0, 0)", "status labels must not use colored fills")
     check(desktop["badgeText"] == "rgb(77, 77, 77)", "status labels must use neutral text")
     check(desktop["badgeDot"] == "rgb(57, 142, 74)", "success status must keep color only in its dot")
@@ -132,20 +177,20 @@ try:
     header = js(
         """(() => {
           const box = selector => document.querySelector(selector).getBoundingClientRect();
-          const brand = box('.portal-brand');
+          const topbar = box('.portal-topbar');
           const nav = box('.portal-nav');
           const role = box('.role-label');
           const logout = document.querySelector('.logout-button');
           return {
-            brandBottom: brand.bottom,
+            topbarBottom: topbar.bottom,
             navTop: nav.top,
             roleHeight: role.height,
             logoutWhiteSpace: getComputedStyle(logout).whiteSpace
           };
         })()"""
     )
-    check(header["navTop"] >= header["brandBottom"], "768px header navigation must move to its own row")
-    check(header["roleHeight"] <= 24, "768px role label must stay on one line")
+    check(header["navTop"] >= header["topbarBottom"], "768px sidebar navigation must move below the topbar")
+    check(header["roleHeight"] <= 32, "768px role label must stay on one line")
     check(header["logoutWhiteSpace"] == "nowrap", "768px sign-out control must not wrap")
 
     active_focused = False
@@ -176,9 +221,13 @@ try:
           const height = selector => document.querySelector(selector).getBoundingClientRect().height;
           const panel = document.querySelector('.onboarding-card').getBoundingClientRect();
           const heading = document.querySelector('.onboarding-card h2').getBoundingClientRect();
+          const nav = document.querySelector('.portal-nav');
+          const sidebar = document.querySelector('.portal-sidebar');
           return {
             onboardingInset: heading.left - panel.left,
             nav: height('.portal-nav a'),
+            navOverflow: nav.scrollWidth - nav.clientWidth,
+            sidebarPosition: getComputedStyle(sidebar).position,
             logout: height('.logout-button'),
             button: height('.button'),
             toolbarLink: height('.toolbar-actions .text-link'),
@@ -187,8 +236,37 @@ try:
         })()"""
     )
     check(mobile["onboardingInset"] >= 16, "onboarding content must be inset from the panel border")
+    check(mobile["sidebarPosition"] == "static", "mobile navigation must return to document flow")
+    check(mobile["navOverflow"] == 0, "mobile navigation must not scroll horizontally")
     for control in ["nav", "logout", "button", "toolbarLink", "rowAction"]:
         check(mobile[control] >= 44, f"mobile {control} target is {mobile[control]:.1f}px, want at least 44px")
+
+    cdp(
+        "Emulation.setDeviceMetricsOverride",
+        width=320,
+        height=844,
+        deviceScaleFactor=1,
+        mobile=True,
+        screenWidth=320,
+        screenHeight=844,
+    )
+    narrow = js(
+        """(() => {
+          const nav = document.querySelector('.portal-nav');
+          const row = document.querySelector('.app-row-link');
+          const meta = document.querySelector('.app-meta');
+          return {
+            navOverflow: nav.scrollWidth - nav.clientWidth,
+            rowHeight: row.getBoundingClientRect().height,
+            metaWhiteSpace: getComputedStyle(meta).whiteSpace,
+            roleDisplay: getComputedStyle(document.querySelector('.role-label')).display
+          };
+        })()"""
+    )
+    check(narrow["navOverflow"] == 0, "320px navigation must not overflow horizontally")
+    check(narrow["rowHeight"] <= 160, f"320px application row is {narrow['rowHeight']:.1f}px, want a compact row")
+    check(narrow["metaWhiteSpace"] == "nowrap", "320px application metadata must stay on one truncated line")
+    check(narrow["roleDisplay"] == "none", "320px role label must yield space to the account actions")
 
     contrast = js(
         """(() => {

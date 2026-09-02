@@ -100,7 +100,7 @@ func TestPortalStylesheetCoversClassesUsedByTemplates(t *testing.T) {
 	}
 	css := string(stylesheet)
 	for _, class := range []string{
-		"portal-topbar", "portal-brand", "portal-nav", "portal-main",
+		"portal-topbar", "portal-brand", "portal-shell", "portal-sidebar", "portal-nav", "portal-main",
 		"page-header", "breadcrumbs", "empty-state",
 		"workspace-grid", "app-table-row", "app-mark", "onboarding-list",
 		"detail-layout", "action-rail", "detail-grid-wide",

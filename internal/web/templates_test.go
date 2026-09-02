@@ -27,10 +27,13 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 			t.Fatalf("navigation missing %q in %q", label, body)
 		}
 	}
-	for _, marker := range []string{"workspace-grid", "app-table", "onboarding-list", "创建应用"} {
+	for _, marker := range []string{"portal-shell", "portal-sidebar", "workspace-grid", "app-table", "onboarding-list", "创建应用"} {
 		if !strings.Contains(body, marker) {
 			t.Fatalf("dashboard layout missing %q", marker)
 		}
+	}
+	if asideIndex, navIndex := strings.Index(body, `<aside class="portal-sidebar">`), strings.Index(body, `<nav class="portal-nav"`); asideIndex < 0 || navIndex < asideIndex {
+		t.Fatalf("portal navigation must be rendered inside the sidebar: %q", body)
 	}
 	if !strings.Contains(body, AssetsPath+"/portal.") {
 		t.Fatalf("stylesheet link is not content-addressed: %q", body)

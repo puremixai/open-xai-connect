@@ -5,6 +5,8 @@
 <body class="portal-body">
 <a class="skip-link" href="#main-content">跳到主要内容</a>
 {{template "portal-topbar" .}}
+<div class="portal-shell">
+{{template "portal-sidebar" .}}
 <main id="main-content" class="portal-main">
 <div class="portal-container">
 {{end}}
@@ -12,6 +14,7 @@
 {{define "portal-page-end"}}
 </div>
 </main>
+</div>
 </body>
 </html>
 {{end}}
@@ -34,12 +37,6 @@
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5l6.3 7L5 19m14-14l-6.3 7L19 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <span class="brand-name">XAI Connect</span>
     </a>
-    <nav class="portal-nav" aria-label="主导航">
-      <a class="{{if eq .Layout.Active "apps"}}is-active{{end}}" href="/connect/apps">应用总览</a>
-      <a class="{{if eq .Layout.Active "new"}}is-active{{end}}" href="/connect/apps/new">创建应用</a>
-      {{if .Layout.IsReviewer}}<a class="{{if eq .Layout.Active "review"}}is-active{{end}}" href="/connect/review">应用审核</a>{{end}}
-      {{if .Layout.IsAdmin}}<a class="{{if eq .Layout.Active "admin"}}is-active{{end}}" href="/connect/admin">运营概览</a>{{end}}
-    </nav>
     <div class="topbar-actions">
       <a class="topbar-link" href="https://github.com/puremixai/xai-connect#接入前提" target="_blank" rel="noreferrer">接入文档</a>
       <span class="user-chip">
@@ -54,4 +51,15 @@
     </div>
   </div>
 </header>
+{{end}}
+
+{{define "portal-sidebar"}}
+<aside class="portal-sidebar">
+  <nav class="portal-nav" aria-label="主导航">
+    <a class="{{if eq .Layout.Active "apps"}}is-active{{end}}" href="/connect/apps">应用总览</a>
+    <a class="{{if eq .Layout.Active "new"}}is-active{{end}}" href="/connect/apps/new">创建应用</a>
+    {{if .Layout.IsReviewer}}<a class="{{if eq .Layout.Active "review"}}is-active{{end}}" href="/connect/review">应用审核</a>{{end}}
+    {{if .Layout.IsAdmin}}<a class="{{if eq .Layout.Active "admin"}}is-active{{end}}" href="/connect/admin">运营概览</a>{{end}}
+  </nav>
+</aside>
 {{end}}
