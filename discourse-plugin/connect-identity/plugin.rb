@@ -14,6 +14,7 @@ after_initialize do
   require_relative "lib/connect_identity/configuration"
   require_relative "lib/connect_identity/signed_request"
   require_relative "lib/connect_identity/publisher"
+  require_relative "lib/connect_identity/level_progress_serializer"
   require_relative "jobs/regular/connect_identity_publish_status"
   require_relative "app/controllers/connect_identity/base_controller"
   require_relative "app/controllers/connect_identity/users_controller"
@@ -25,6 +26,7 @@ after_initialize do
 
   Discourse::Application.routes.append do
     get "/connect/identity/users/:id" => "connect_identity/users#show"
+    get "/connect/identity/users/:id/level-progress" => "connect_identity/users#level_progress"
   end
 
   on(:user_updated) do |user|

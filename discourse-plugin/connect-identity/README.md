@@ -14,10 +14,16 @@
 服务接口：
 
 - GET /connect/identity/users/:id
+- GET /connect/identity/users/:id/level-progress
 
 状态变更由插件后台任务主动 POST 到 Portal 的 `/connect/identity/events`；Discourse 端不开放一个会把事件再转发回 Portal 的同名入口，避免事件回环。
 
-两个接口都要求 X-Connect-Timestamp、X-Connect-Nonce 和 X-Connect-Signature。响应包含 Discourse ID、用户名、昵称、邮箱、头像、信任等级和账号状态，以及仅供 Portal 后台访问控制使用的 connect_reviewer / connect_admin 布尔值；不会返回任意群组、外部账号或 API Key。邮箱只会在 Connect 已批准 `email` Scope 后通过 OIDC 返回给第三方应用。
+两个接口都要求 X-Connect-Timestamp、X-Connect-Nonce 和 X-Connect-Signature。
+
+- `GET /connect/identity/users/:id` 保持现有最小身份状态响应，包含 Discourse ID、用户名、昵称、邮箱、头像、信任等级和账号状态，以及仅供 Portal 后台访问控制使用的 `connect_reviewer` / `connect_admin` 布尔值。
+- `GET /connect/identity/users/:id/level-progress` 仅供 Portal 服务端调用，返回当前等级、下一等级、升级模式、目标等级条件、阻断条件和生成时间。TL0→TL3 的条件在 Discourse 内部按现有 `Promotion` / `TrustLevel3Requirements` 规则计算；TL3→TL4 返回手动授予；TL4 返回无下一等级。
+
+等级进度接口不会返回任意群组、外部账号、帖子/话题原始记录、IP、API Key 或其他敏感论坛数据。邮箱只会在 Connect 已批准 `email` Scope 后通过 OIDC 返回给第三方应用；等级进度接口本身不返回邮箱或其他身份资料。
 
 在 Discourse 容器中运行插件测试：
 

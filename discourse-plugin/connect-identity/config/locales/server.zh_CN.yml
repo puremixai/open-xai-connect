@@ -6,3 +6,32 @@ zh_CN:
     connect_identity_reviewer_groups: "可审核 Connect 应用的群组名称，使用 | 分隔"
     connect_identity_admin_groups: "可执行 Connect 管理操作的群组名称，使用 | 分隔"
     connect_identity_request_window_seconds: "桥接请求允许的时间窗口（秒）"
+  connect_identity:
+    level_progress:
+      groups:
+        activity: "活跃程度"
+        interaction: "互动参与"
+        compliance: "合规与账号状态"
+      requirements:
+        topics_entered: "进入话题数"
+        posts_read: "阅读帖子数"
+        time_read_minutes: "阅读时长"
+        account_age_minutes: "账号年龄"
+        days_visited: "访问天数"
+        likes_received: "获赞数"
+        likes_given: "点赞数"
+        num_topics_replied_to: "回复话题数"
+        topics_viewed: "浏览话题数"
+        topics_viewed_all_time: "累计浏览话题数"
+        posts_read_all_time: "累计阅读帖子数"
+        num_likes_given: "已点赞数"
+        num_likes_received: "累计获赞数"
+        num_likes_received_days: "获赞天数"
+        num_likes_received_users: "获赞用户数"
+        num_flagged_posts: "被确认举报的帖子数"
+        num_flagged_by_users: "确认举报用户数"
+      blocking_conditions:
+        not_silenced: "账号未被禁言"
+        not_suspended: "账号未被封禁"
+        no_recent_penalties: "近六个月无有效处罚"
+        not_manually_locked: "信任等级未被手动锁定"
