@@ -184,9 +184,16 @@ echo "DEPLOY_OK release=$release"
         "${RemoteUser}@${RemoteHost}",
         "bash -s"
     )
-    $remoteScript | & ssh @sshArguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "remote deployment failed with exit code $LASTEXITCODE"
+    $previousOutputEncoding = $OutputEncoding
+    try {
+        $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+        $remoteScript | & ssh @sshArguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "remote deployment failed with exit code $LASTEXITCODE"
+        }
+    }
+    finally {
+        $OutputEncoding = $previousOutputEncoding
     }
 
     Write-Output "deployed commit $commit to ${RemoteUser}@${RemoteHost}:$RemoteDir"

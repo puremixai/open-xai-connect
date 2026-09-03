@@ -20,7 +20,9 @@ foreach ($marker in @(
         "build portal",
         "up -d --no-deps portal",
         "State.Health.Status",
-        ".release"
+        ".release",
+        "OutputEncoding",
+        "UTF8Encoding"
     )) {
     if ($source -notlike "*$marker*") {
         throw "deployment script is missing required step: $marker"
