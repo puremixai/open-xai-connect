@@ -23,7 +23,7 @@ foreach ($marker in @(
         ".release",
         "OutputEncoding",
         "UTF8Encoding",
-        "sed '1s/^\\xEF\\xBB\\xBF//' | bash -s"
+        "sed '1s/^\xEF\xBB\xBF//' | bash -s"
     )) {
     if ($source -notlike "*$marker*") {
         throw "deployment script is missing required step: $marker"
