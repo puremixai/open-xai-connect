@@ -11,6 +11,7 @@ var ErrNotFound = errors.New("session not found")
 type Session struct {
 	ID                string
 	UserSubject       string
+	HomeVerified      bool
 	CreatedAt         time.Time
 	LastSeenAt        time.Time
 	ExpiresAt         time.Time
@@ -21,6 +22,7 @@ type Store interface {
 	Create(context.Context, string, time.Time) (Session, error)
 	Get(context.Context, string, time.Time) (Session, error)
 	Touch(context.Context, string, time.Time) (Session, error)
+	MarkHomeVerified(context.Context, string, time.Time) (Session, error)
 	Delete(context.Context, string) error
 }
 

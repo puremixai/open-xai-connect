@@ -28,6 +28,7 @@
   <title>{{if .PageTitle}}{{.PageTitle}} · {{end}}XAI Connect</title>
   <link rel="icon" type="image/svg+xml" href="{{assetURL "favicon.svg"}}">
   <link rel="stylesheet" href="{{assetURL "portal.css"}}">
+  {{if .TurnstileSiteKey}}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{{end}}
 </head>
 {{end}}
 

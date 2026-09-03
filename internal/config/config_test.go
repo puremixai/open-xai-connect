@@ -20,6 +20,9 @@ func setValidEnvironment(t *testing.T) {
 	t.Setenv("CONNECT_COOKIE_SECURE", "true")
 	t.Setenv("CONNECT_COOKIE_NAME", "connect_session")
 	t.Setenv("CONNECT_ENV", "test")
+	t.Setenv("TURNSTILE_SITE_KEY", "0x4AAAAAAElnfHQEWJo0Sdjl")
+	t.Setenv("TURNSTILE_SECRET", "turnstile-secret")
+	t.Setenv("TURNSTILE_HOSTNAMES", "connect.example,localhost,127.0.0.1")
 }
 
 func clearConfigEnvironment(t *testing.T) {
@@ -29,6 +32,7 @@ func clearConfigEnvironment(t *testing.T) {
 		"DISCOURSE_SHARED_SECRET", "POSTGRES_DSN", "REDIS_URL",
 		"HYDRA_PUBLIC_URL", "HYDRA_ADMIN_URL", "CONNECT_ENCRYPTION_KEY",
 		"CONNECT_COOKIE_SECURE", "CONNECT_COOKIE_NAME", "CONNECT_ENV",
+		"TURNSTILE_SITE_KEY", "TURNSTILE_SECRET", "TURNSTILE_HOSTNAMES",
 	} {
 		t.Setenv(key, "")
 		_ = os.Unsetenv(key)
@@ -70,5 +74,21 @@ func TestLoadReturnsValidatedConfiguration(t *testing.T) {
 	}
 	if !got.CookieSecure || got.CookieName != "connect_session" {
 		t.Fatalf("cookie settings = secure:%v name:%q", got.CookieSecure, got.CookieName)
+	}
+	if got.TurnstileSiteKey != "0x4AAAAAAElnfHQEWJo0Sdjl" || got.TurnstileSecret != "turnstile-secret" {
+		t.Fatalf("Turnstile settings = site key:%q secret:%q", got.TurnstileSiteKey, got.TurnstileSecret)
+	}
+	if len(got.TurnstileHostnames) != 3 || got.TurnstileHostnames[0] != "connect.example" {
+		t.Fatalf("Turnstile hostnames = %#v", got.TurnstileHostnames)
+	}
+}
+
+func TestLoadRejectsLocalTurnstileHostnameInProduction(t *testing.T) {
+	setValidEnvironment(t)
+	t.Setenv("CONNECT_ENV", "production")
+	t.Setenv("TURNSTILE_HOSTNAMES", "connect.xai.run,localhost")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("Load() error = nil, want production hostname validation error")
 	}
 }

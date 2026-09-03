@@ -12,6 +12,7 @@ import (
 	"connect.xai.run/internal/domain"
 	"connect.xai.run/internal/identity"
 	"connect.xai.run/internal/session"
+	"connect.xai.run/internal/turnstile"
 	"connect.xai.run/internal/web"
 )
 
@@ -21,6 +22,22 @@ type fakeLevelProgressLookup struct {
 	calls    int
 	subjects []string
 }
+
+type fakeTurnstileValidator struct {
+	err    error
+	calls  int
+	token  string
+	action string
+}
+
+func (f *fakeTurnstileValidator) Verify(_ context.Context, token, action string) error {
+	f.calls++
+	f.token = token
+	f.action = action
+	return f.err
+}
+
+var _ turnstile.Validator = (*fakeTurnstileValidator)(nil)
 
 func (f *fakeLevelProgressLookup) CurrentLevelProgress(_ context.Context, subject string) (identity.LevelProgressSnapshot, error) {
 	f.calls++
@@ -117,6 +134,147 @@ func TestHTTPHandlerProtectsAppCreationWithSessionAndCSRF(t *testing.T) {
 	mux.ServeHTTP(badForm, badRequest)
 	if badForm.Code != http.StatusForbidden {
 		t.Fatalf("bad CSRF status = %d", badForm.Code)
+	}
+}
+
+func TestHTTPHandlerShowsTurnstileGateOnFirstHomepageVisit(t *testing.T) {
+	renderer, err := web.NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	csrf, err := session.NewCSRF([]byte("csrf-secret-012345"))
+	if err != nil {
+		t.Fatalf("NewCSRF() error = %v", err)
+	}
+	progress := &fakeLevelProgressLookup{}
+	handler := NewHTTPHandler(HTTPDependencies{
+		Status:        appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+		Turnstile: &fakeTurnstileValidator{}, TurnstileSiteKey: "0x4AAAAAAElnfHQEWJo0Sdjl",
+	})
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, handler)
+
+	request := authenticatedRequest(t, sessions, "/")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("homepage gate status = %d, body = %q", response.Code, response.Body.String())
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, `class="cf-turnstile"`) || !strings.Contains(body, `data-action="home"`) {
+		t.Fatalf("homepage gate missing Turnstile widget: %q", body)
+	}
+	if strings.Contains(body, "用户等级进度") {
+		t.Fatalf("homepage content rendered before verification: %q", body)
+	}
+	if progress.calls != 0 {
+		t.Fatalf("CurrentLevelProgress() calls = %d, want 0", progress.calls)
+	}
+}
+
+func TestHTTPHandlerAcceptsHomepageTurnstileAndRendersContentAfterVerification(t *testing.T) {
+	renderer, err := web.NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	csrf, err := session.NewCSRF([]byte("csrf-secret-012345"))
+	if err != nil {
+		t.Fatalf("NewCSRF() error = %v", err)
+	}
+	progress := &fakeLevelProgressLookup{}
+	validator := &fakeTurnstileValidator{}
+	handler := NewHTTPHandler(HTTPDependencies{
+		Status:        appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
+		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+		Turnstile: validator, TurnstileSiteKey: "0x4AAAAAAElnfHQEWJo0Sdjl",
+	})
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, handler)
+
+	loginResponse := httptest.NewRecorder()
+	sessionValue, err := sessions.Establish(loginResponse, httptest.NewRequest(http.MethodGet, "/", nil), "sub_1")
+	if err != nil {
+		t.Fatalf("Establish() error = %v", err)
+	}
+	cookie := loginResponse.Result().Cookies()[0]
+	csrfToken, err := csrf.Token(sessionValue.ID)
+	if err != nil {
+		t.Fatalf("csrf.Token() error = %v", err)
+	}
+	form := url.Values{"csrf_token": {csrfToken}, "cf-turnstile-response": {"fresh-token"}}
+	verifyRequest := httptest.NewRequest(http.MethodPost, "/connect/home/verify", strings.NewReader(form.Encode()))
+	verifyRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	verifyRequest.AddCookie(cookie)
+	verifyResponse := httptest.NewRecorder()
+	mux.ServeHTTP(verifyResponse, verifyRequest)
+
+	if verifyResponse.Code != http.StatusSeeOther || verifyResponse.Header().Get("Location") != "/" {
+		t.Fatalf("verify response = %d/%q, body = %q", verifyResponse.Code, verifyResponse.Header().Get("Location"), verifyResponse.Body.String())
+	}
+	if validator.calls != 1 || validator.token != "fresh-token" || validator.action != "home" {
+		t.Fatalf("Turnstile call = %d/%q/%q", validator.calls, validator.token, validator.action)
+	}
+
+	homeRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+	homeRequest.AddCookie(cookie)
+	homeResponse := httptest.NewRecorder()
+	mux.ServeHTTP(homeResponse, homeRequest)
+	if homeResponse.Code != http.StatusOK || !strings.Contains(homeResponse.Body.String(), "用户等级进度") {
+		t.Fatalf("verified homepage = %d/%q", homeResponse.Code, homeResponse.Body.String())
+	}
+	if progress.calls != 1 {
+		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)
+	}
+}
+
+func TestHTTPHandlerKeepsHomepageBlockedWhenTurnstileFails(t *testing.T) {
+	renderer, err := web.NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	sessions := session.NewHTTPHandler(session.NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	csrf, err := session.NewCSRF([]byte("csrf-secret-012345"))
+	if err != nil {
+		t.Fatalf("NewCSRF() error = %v", err)
+	}
+	validator := &fakeTurnstileValidator{err: turnstile.ErrRejected}
+	handler := NewHTTPHandler(HTTPDependencies{
+		Sessions: sessions, CSRF: csrf, Renderer: renderer,
+		Turnstile: validator, TurnstileSiteKey: "0x4AAAAAAElnfHQEWJo0Sdjl",
+	})
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, handler)
+
+	loginResponse := httptest.NewRecorder()
+	sessionValue, err := sessions.Establish(loginResponse, httptest.NewRequest(http.MethodGet, "/", nil), "sub_1")
+	if err != nil {
+		t.Fatalf("Establish() error = %v", err)
+	}
+	cookie := loginResponse.Result().Cookies()[0]
+	csrfToken, err := csrf.Token(sessionValue.ID)
+	if err != nil {
+		t.Fatalf("csrf.Token() error = %v", err)
+	}
+	form := url.Values{"csrf_token": {csrfToken}, "cf-turnstile-response": {"rejected-token"}}
+	verifyRequest := httptest.NewRequest(http.MethodPost, "/connect/home/verify", strings.NewReader(form.Encode()))
+	verifyRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	verifyRequest.AddCookie(cookie)
+	verifyResponse := httptest.NewRecorder()
+	mux.ServeHTTP(verifyResponse, verifyRequest)
+	if verifyResponse.Code != http.StatusForbidden {
+		t.Fatalf("failed verification status = %d, body = %q", verifyResponse.Code, verifyResponse.Body.String())
+	}
+
+	homeRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+	homeRequest.AddCookie(cookie)
+	homeResponse := httptest.NewRecorder()
+	mux.ServeHTTP(homeResponse, homeRequest)
+	if !strings.Contains(homeResponse.Body.String(), `class="cf-turnstile"`) || strings.Contains(homeResponse.Body.String(), "用户等级进度") {
+		t.Fatalf("homepage was not kept behind Turnstile: %q", homeResponse.Body.String())
 	}
 }
 
@@ -298,11 +456,15 @@ func TestHTTPHandlerRendersLevelProgressOnlyAtRoot(t *testing.T) {
 	handler := NewHTTPHandler(HTTPDependencies{
 		Status:        appStatusLookup{status: identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1}},
 		LevelProgress: progress, Sessions: sessions, CSRF: csrf, Renderer: renderer,
+		Turnstile: &fakeTurnstileValidator{}, TurnstileSiteKey: "0x4AAAAAAElnfHQEWJo0Sdjl",
 	})
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, handler)
 
 	request := authenticatedRequest(t, sessions, "/")
+	if err := sessions.MarkHomeVerified(request); err != nil {
+		t.Fatalf("MarkHomeVerified() error = %v", err)
+	}
 	response := httptest.NewRecorder()
 	mux.ServeHTTP(response, request)
 

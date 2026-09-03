@@ -84,6 +84,24 @@ func (s *RedisStore) Touch(ctx context.Context, id string, now time.Time) (Sessi
 	return session, nil
 }
 
+func (s *RedisStore) MarkHomeVerified(ctx context.Context, id string, now time.Time) (Session, error) {
+	session, err := s.Get(ctx, id, now)
+	if err != nil {
+		return Session{}, err
+	}
+	now = now.UTC()
+	session.HomeVerified = true
+	session.LastSeenAt = now
+	session.ExpiresAt = expiry(now, s.Sliding, session.AbsoluteExpiresAt.Sub(now))
+	if session.ExpiresAt.After(session.AbsoluteExpiresAt) {
+		session.ExpiresAt = session.AbsoluteExpiresAt
+	}
+	if err := s.save(ctx, session, now); err != nil {
+		return Session{}, err
+	}
+	return session, nil
+}
+
 func (s *RedisStore) Delete(ctx context.Context, id string) error {
 	if s == nil || s.Client == nil {
 		return errors.New("Redis session store is not initialized")

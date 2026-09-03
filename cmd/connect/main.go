@@ -23,6 +23,7 @@ import (
 	"connect.xai.run/internal/secrets"
 	"connect.xai.run/internal/session"
 	"connect.xai.run/internal/store/postgres"
+	"connect.xai.run/internal/turnstile"
 	"connect.xai.run/internal/web"
 )
 
@@ -101,6 +102,10 @@ type runtime struct {
 }
 
 func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
+	turnstileClient, err := turnstile.New(cfg.TurnstileSecret, cfg.TurnstileHostnames, &http.Client{Timeout: 10 * time.Second})
+	if err != nil {
+		return nil, err
+	}
 	db, err := postgres.New(ctx, cfg.PostgresDSN)
 	if err != nil {
 		return nil, err
@@ -209,6 +214,7 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 	identityEvents := identity.NewEventConsumer(verifier, db, eventIDs, levelProgressCache)
 	appHTTP := apps.NewHTTPHandler(apps.HTTPDependencies{
 		Service: appService, Status: status, LevelProgress: levelProgress, Sessions: sessions, CSRF: csrf, Renderer: renderer, Assets: assetStore,
+		Turnstile: turnstileClient, TurnstileSiteKey: cfg.TurnstileSiteKey,
 	})
 	reviewHTTP := reviews.NewHTTPHandler(reviews.HTTPDependencies{
 		Service: reviewService, Status: status, Sessions: sessions, CSRF: csrf, Renderer: renderer,

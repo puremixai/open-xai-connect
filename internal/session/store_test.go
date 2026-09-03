@@ -49,6 +49,34 @@ func TestMemoryStoreEnforcesAbsoluteExpiry(t *testing.T) {
 	}
 }
 
+func TestSessionHomeVerificationPersistsInMemoryStore(t *testing.T) {
+	now := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	store := NewMemoryStore(time.Hour, 2*time.Hour)
+	created, err := store.Create(context.Background(), "sub_1", now)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if created.HomeVerified {
+		t.Fatal("new session is already home verified")
+	}
+
+	marked, err := store.MarkHomeVerified(context.Background(), created.ID, now.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("MarkHomeVerified() error = %v", err)
+	}
+	if !marked.HomeVerified {
+		t.Fatal("marked session is not home verified")
+	}
+
+	got, err := store.Get(context.Background(), created.ID, now.Add(2*time.Minute))
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if !got.HomeVerified {
+		t.Fatal("home verification was not persisted")
+	}
+}
+
 func TestSessionCookieUsesSecureHttpOnlyDefaults(t *testing.T) {
 	cookie := NewCookie("connect_session", "opaque-id", 3600, true)
 	if cookie.Name != "connect_session" || cookie.Value != "opaque-id" {
@@ -99,5 +127,35 @@ func TestHTTPSessionHandlerEstablishesReadsAndClearsCookie(t *testing.T) {
 	cleared := logoutResponse.Result().Cookies()
 	if len(cleared) != 1 || cleared[0].MaxAge != -1 {
 		t.Fatalf("clear cookie = %#v", cleared)
+	}
+}
+
+func TestHTTPSessionHandlerTracksHomeVerification(t *testing.T) {
+	now := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	handler := NewHTTPHandler(NewMemoryStore(time.Hour, 2*time.Hour), "connect_session", true)
+	handler.now = func() time.Time { return now }
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "https://connect.example/", nil)
+	if _, err := handler.Establish(response, request, "sub_1"); err != nil {
+		t.Fatalf("Establish() error = %v", err)
+	}
+	request.AddCookie(response.Result().Cookies()[0])
+
+	verified, err := handler.HomeVerified(request)
+	if err != nil {
+		t.Fatalf("HomeVerified() error = %v", err)
+	}
+	if verified {
+		t.Fatal("new session is already home verified")
+	}
+	if err := handler.MarkHomeVerified(request); err != nil {
+		t.Fatalf("MarkHomeVerified() error = %v", err)
+	}
+	verified, err = handler.HomeVerified(request)
+	if err != nil {
+		t.Fatalf("HomeVerified() after mark error = %v", err)
+	}
+	if !verified {
+		t.Fatal("home verification was not reported")
 	}
 }

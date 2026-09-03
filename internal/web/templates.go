@@ -362,7 +362,13 @@ func contentSecurityPolicy(pageName string, redirectURIs []string) string {
 	if pageName == "consent" {
 		formAction = append(formAction, formActionSources(redirectURIs)...)
 	}
-	return "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action " + strings.Join(formAction, " ")
+	scriptSource := "'self'"
+	turnstileSources := ""
+	if pageName == "home-verification" {
+		scriptSource += " https://challenges.cloudflare.com"
+		turnstileSources = "; frame-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com"
+	}
+	return "default-src 'self'; script-src " + scriptSource + "; style-src 'self'; img-src 'self' data:" + turnstileSources + "; frame-ancestors 'none'; base-uri 'self'; form-action " + strings.Join(formAction, " ")
 }
 
 func formActionSources(redirectURIs []string) []string {

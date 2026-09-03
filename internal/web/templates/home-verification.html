@@ -1,0 +1,22 @@
+{{template "portal-page-start" .}}
+
+<div class="turnstile-page">
+  <nav class="breadcrumbs" aria-label="面包屑">
+    <span>首页</span>
+  </nav>
+
+  <section class="panel turnstile-gate" aria-labelledby="turnstile-gate-title">
+    <span class="turnstile-kicker">SECURITY CHECK</span>
+    <h1 id="turnstile-gate-title">进入首页前确认访问</h1>
+    <p class="lead">Cloudflare 会根据当前访问风险自动决定是否需要额外交互。完成验证后即可查看你的等级进度。</p>
+    <form method="post" action="{{.Action}}">
+      <input type="hidden" name="csrf_token" value="{{.Layout.CSRFToken}}">
+      <div class="cf-turnstile" data-sitekey="{{.TurnstileSiteKey}}" data-action="home"></div>
+      <div class="turnstile-actions">
+        <button class="button" type="submit">继续进入首页</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+{{template "portal-page-end" .}}

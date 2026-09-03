@@ -13,6 +13,7 @@ import (
 	"connect.xai.run/internal/domain"
 	"connect.xai.run/internal/identity"
 	"connect.xai.run/internal/session"
+	"connect.xai.run/internal/turnstile"
 	"connect.xai.run/internal/web"
 )
 
@@ -26,28 +27,33 @@ type pageRenderer interface {
 }
 
 type HTTPDependencies struct {
-	Service       *Service
-	Status        identity.StatusLookup
-	LevelProgress identity.LevelProgressLookup
-	Sessions      *session.HTTPHandler
-	CSRF          *session.CSRF
-	Renderer      pageRenderer
-	Assets        AssetStore
+	Service          *Service
+	Status           identity.StatusLookup
+	LevelProgress    identity.LevelProgressLookup
+	Sessions         *session.HTTPHandler
+	CSRF             *session.CSRF
+	Turnstile        turnstile.Validator
+	TurnstileSiteKey string
+	Renderer         pageRenderer
+	Assets           AssetStore
 }
 
 type HTTPHandler struct {
-	service       *Service
-	status        identity.StatusLookup
-	levelProgress identity.LevelProgressLookup
-	sessions      *session.HTTPHandler
-	csrf          *session.CSRF
-	renderer      pageRenderer
-	assets        AssetStore
+	service          *Service
+	status           identity.StatusLookup
+	levelProgress    identity.LevelProgressLookup
+	sessions         *session.HTTPHandler
+	csrf             *session.CSRF
+	turnstile        turnstile.Validator
+	turnstileSiteKey string
+	renderer         pageRenderer
+	assets           AssetStore
 }
 
 func NewHTTPHandler(deps HTTPDependencies) *HTTPHandler {
 	return &HTTPHandler{
 		service: deps.Service, status: deps.Status, levelProgress: deps.LevelProgress, sessions: deps.Sessions, csrf: deps.CSRF,
+		turnstile: deps.Turnstile, turnstileSiteKey: deps.TurnstileSiteKey,
 		renderer: deps.Renderer, assets: deps.Assets,
 	}
 }
@@ -60,6 +66,7 @@ func RegisterRoutes(mux *http.ServeMux, handler *HTTPHandler) {
 		}
 		handler.home(w, r)
 	})
+	mux.HandleFunc("/connect/home/verify", handler.verifyHome)
 	mux.HandleFunc("/connect/apps", handler.listOrCreate)
 	mux.HandleFunc("/connect/apps/new", handler.newForm)
 	mux.HandleFunc("/connect/apps/", handler.item)
@@ -76,11 +83,57 @@ func (h *HTTPHandler) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
+	verified, err := h.sessions.HomeVerified(r)
+	if err != nil {
+		h.fail(w, http.StatusServiceUnavailable, "无法读取验证状态", "首页验证状态暂时不可用")
+		return
+	}
+	if !verified {
+		if h.turnstile == nil || strings.TrimSpace(h.turnstileSiteKey) == "" {
+			h.fail(w, http.StatusServiceUnavailable, "验证服务未配置", "首页验证服务未配置")
+			return
+		}
+		h.render(w, "home-verification", map[string]any{
+			"PageTitle":        "安全验证",
+			"Action":           "/connect/home/verify",
+			"TurnstileSiteKey": h.turnstileSiteKey,
+			"Layout":           h.layoutFor(r, subject, "home"),
+		})
+		return
+	}
 	h.render(w, "level-progress", map[string]any{
 		"PageTitle":     "用户等级进度",
 		"Layout":        h.layoutFor(r, subject, "home"),
 		"LevelProgress": h.loadLevelProgress(r.Context(), subject),
 	})
+}
+
+func (h *HTTPHandler) verifyHome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if _, ok := h.authenticated(w, r); !ok {
+		return
+	}
+	if !h.validCSRF(r) {
+		h.fail(w, http.StatusForbidden, "请求已过期", "CSRF 校验失败")
+		return
+	}
+	if h.turnstile == nil || strings.TrimSpace(h.turnstileSiteKey) == "" {
+		h.fail(w, http.StatusServiceUnavailable, "验证服务未配置", "首页验证服务未配置")
+		return
+	}
+	if err := h.turnstile.Verify(r.Context(), r.FormValue("cf-turnstile-response"), "home"); err != nil {
+		h.fail(w, http.StatusForbidden, "验证未通过", "请完成 Cloudflare 验证后重试")
+		return
+	}
+	if err := h.sessions.MarkHomeVerified(r); err != nil {
+		h.fail(w, http.StatusServiceUnavailable, "无法保存验证状态", "首页验证状态暂时不可用")
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (h *HTTPHandler) listOrCreate(w http.ResponseWriter, r *http.Request) {

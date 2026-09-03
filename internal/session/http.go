@@ -56,6 +56,33 @@ func (h *HTTPHandler) SessionID(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
+func (h *HTTPHandler) HomeVerified(r *http.Request) (bool, error) {
+	if h == nil || h.store == nil || h.cookieName == "" {
+		return false, errors.New("session HTTP handler is not initialized")
+	}
+	id, err := h.SessionID(r)
+	if err != nil {
+		return false, err
+	}
+	current, err := h.store.Get(r.Context(), id, h.now().UTC())
+	if err != nil {
+		return false, err
+	}
+	return current.HomeVerified, nil
+}
+
+func (h *HTTPHandler) MarkHomeVerified(r *http.Request) error {
+	if h == nil || h.store == nil || h.cookieName == "" {
+		return errors.New("session HTTP handler is not initialized")
+	}
+	id, err := h.SessionID(r)
+	if err != nil {
+		return err
+	}
+	_, err = h.store.MarkHomeVerified(r.Context(), id, h.now().UTC())
+	return err
+}
+
 func (h *HTTPHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	if h == nil || h.store == nil || h.cookieName == "" {
 		return errors.New("session HTTP handler is not initialized")

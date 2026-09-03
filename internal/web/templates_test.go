@@ -91,6 +91,43 @@ func TestRendererIncludesFaviconInEveryPageHead(t *testing.T) {
 	}
 }
 
+func TestRendererShowsTurnstileHomepageGate(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	response := httptest.NewRecorder()
+	if err := renderer.Render(response, "home-verification", map[string]any{
+		"PageTitle":        "安全验证",
+		"TurnstileSiteKey": "0x4AAAAAAElnfHQEWJo0Sdjl",
+		"Action":           "/connect/home/verify",
+		"Layout":           Layout{Active: "home", CSRFToken: "csrf-token"},
+	}); err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	body := response.Body.String()
+	for _, marker := range []string{
+		`src="https://challenges.cloudflare.com/turnstile/v0/api.js"`,
+		`class="cf-turnstile"`,
+		`data-sitekey="0x4AAAAAAElnfHQEWJo0Sdjl"`,
+		`data-action="home"`,
+		`name="csrf_token"`,
+	} {
+		if !strings.Contains(body, marker) {
+			t.Fatalf("homepage gate missing %q: %q", marker, body)
+		}
+	}
+	if strings.Contains(body, "level-progress-title") {
+		t.Fatalf("homepage gate rendered protected content: %q", body)
+	}
+	csp := response.Header().Get("Content-Security-Policy")
+	for _, marker := range []string{"script-src 'self' https://challenges.cloudflare.com", "frame-src 'self' https://challenges.cloudflare.com", "connect-src 'self' https://challenges.cloudflare.com"} {
+		if !strings.Contains(csp, marker) {
+			t.Fatalf("homepage gate CSP missing %q: %q", marker, csp)
+		}
+	}
+}
+
 func TestRendererKeepsLevelNavigationAndHidesLevelProgressOnApplicationOverview(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {

@@ -20,6 +20,9 @@ type Config struct {
 	PublicIssuerURL       string
 	DiscourseURL          string
 	DiscourseSharedSecret string
+	TurnstileSiteKey      string
+	TurnstileSecret       string
+	TurnstileHostnames    []string
 	PostgresDSN           string
 	RedisURL              string
 	HydraPublicURL        string
@@ -55,6 +58,15 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.DiscourseSharedSecret, err = requiredEnv("DISCOURSE_SHARED_SECRET"); err != nil {
+		return Config{}, err
+	}
+	if cfg.TurnstileSiteKey, err = requiredEnv("TURNSTILE_SITE_KEY"); err != nil {
+		return Config{}, err
+	}
+	if cfg.TurnstileSecret, err = requiredEnv("TURNSTILE_SECRET"); err != nil {
+		return Config{}, err
+	}
+	if cfg.TurnstileHostnames, err = requiredHostnames("TURNSTILE_HOSTNAMES", cfg.Environment == "production"); err != nil {
 		return Config{}, err
 	}
 	if cfg.PostgresDSN, err = requiredEnv("POSTGRES_DSN"); err != nil {
@@ -110,6 +122,36 @@ func requiredEnv(key string) (string, error) {
 		return "", fmt.Errorf("%s is required", key)
 	}
 	return value, nil
+}
+
+func requiredHostnames(key string, rejectLocal bool) ([]string, error) {
+	raw, err := requiredEnv(key)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]struct{})
+	hostnames := make([]string, 0)
+	for _, item := range strings.Split(raw, ",") {
+		hostname := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(item), "."))
+		if hostname == "" {
+			continue
+		}
+		if strings.ContainsAny(hostname, "/\\:*?\"<>|") || strings.ContainsAny(hostname, "\t\r\n") {
+			return nil, fmt.Errorf("%s contains an invalid hostname", key)
+		}
+		if rejectLocal && (hostname == "localhost" || hostname == "127.0.0.1") {
+			return nil, fmt.Errorf("%s cannot include local hostnames in production", key)
+		}
+		if _, ok := seen[hostname]; ok {
+			continue
+		}
+		seen[hostname] = struct{}{}
+		hostnames = append(hostnames, hostname)
+	}
+	if len(hostnames) == 0 {
+		return nil, fmt.Errorf("%s must contain at least one hostname", key)
+	}
+	return hostnames, nil
 }
 
 func envOr(key, fallback string) string {

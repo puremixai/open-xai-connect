@@ -96,6 +96,35 @@ func (s *MemoryStore) Touch(ctx context.Context, id string, now time.Time) (Sess
 	return session, nil
 }
 
+func (s *MemoryStore) MarkHomeVerified(ctx context.Context, id string, now time.Time) (Session, error) {
+	if err := contextError(ctx); err != nil {
+		return Session{}, err
+	}
+	key := hashID(id)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	session, ok := s.data[key]
+	if !ok || !validAt(session, now) {
+		delete(s.data, key)
+		return Session{}, ErrNotFound
+	}
+	now = now.UTC()
+	session.HomeVerified = true
+	session.LastSeenAt = now
+	remaining := session.AbsoluteExpiresAt.Sub(now)
+	if remaining <= 0 {
+		delete(s.data, key)
+		return Session{}, ErrNotFound
+	}
+	session.ExpiresAt = expiry(now, s.sliding, remaining)
+	if session.ExpiresAt.After(session.AbsoluteExpiresAt) {
+		session.ExpiresAt = session.AbsoluteExpiresAt
+	}
+	session.ID = id
+	s.data[key] = session
+	return session, nil
+}
+
 func (s *MemoryStore) Delete(ctx context.Context, id string) error {
 	if err := contextError(ctx); err != nil {
 		return err
