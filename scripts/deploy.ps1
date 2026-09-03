@@ -182,7 +182,7 @@ echo "DEPLOY_OK release=$release"
         "-o", "IdentitiesOnly=yes",
         "-o", "StrictHostKeyChecking=accept-new",
         "${RemoteUser}@${RemoteHost}",
-        "bash -s"
+        "sed '1s/^\xEF\xBB\xBF//' | bash -s"
     )
     $previousOutputEncoding = $OutputEncoding
     try {
