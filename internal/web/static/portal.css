@@ -1100,8 +1100,18 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 
 /* 7g. Turnstile gate ------------------------------------------------------------------------- */
 
-.turnstile-page { max-width: 720px; margin: 0 auto; }
-.turnstile-page .breadcrumbs { margin-bottom: var(--space-6); }
+.turnstile-interstitial-body { min-height: 100dvh; }
+.turnstile-interstitial-header {
+  display: flex; align-items: center;
+  min-height: 64px; padding: 0 var(--space-6);
+  background: var(--surface);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .1);
+}
+.turnstile-interstitial-main {
+  display: grid; place-items: center;
+  min-height: calc(100dvh - 64px); padding: var(--space-10) var(--space-6) var(--space-16);
+}
+.turnstile-interstitial { width: min(100%, 720px); margin: 0 auto; }
 .turnstile-gate { padding: 32px; }
 .turnstile-kicker { color: var(--accent-text); font: 600 11px/1.4 var(--mono); letter-spacing: .12em; }
 .turnstile-gate h1 { margin: var(--space-2) 0 var(--space-2); font-size: 30px; line-height: 1.2; letter-spacing: -.025em; }
@@ -1168,6 +1178,8 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 }
 
 @media (max-width: 720px) {
+  .turnstile-interstitial-header { padding: 0 16px; }
+  .turnstile-interstitial-main { min-height: calc(100dvh - 64px); padding: 24px 16px 40px; }
   .portal-main { padding: 24px 16px 16px; }
   .docs-main { padding: 24px 16px 0; }
   .docs-hero { margin: var(--space-6) 0 var(--space-8); }

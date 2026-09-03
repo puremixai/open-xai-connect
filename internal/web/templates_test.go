@@ -117,8 +117,10 @@ func TestRendererShowsTurnstileHomepageGate(t *testing.T) {
 			t.Fatalf("homepage gate missing %q: %q", marker, body)
 		}
 	}
-	if strings.Contains(body, "level-progress-title") {
-		t.Fatalf("homepage gate rendered protected content: %q", body)
+	for _, marker := range []string{"level-progress-title", `class="portal-shell"`, `class="portal-sidebar"`} {
+		if strings.Contains(body, marker) {
+			t.Fatalf("verification page rendered homepage content/layout %q: %q", marker, body)
+		}
 	}
 	csp := response.Header().Get("Content-Security-Policy")
 	for _, marker := range []string{"script-src 'self' https://challenges.cloudflare.com", "frame-src 'self' https://challenges.cloudflare.com", "connect-src 'self' https://challenges.cloudflare.com"} {

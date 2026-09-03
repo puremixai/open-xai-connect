@@ -89,16 +89,7 @@ func (h *HTTPHandler) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !verified {
-		if h.turnstile == nil || strings.TrimSpace(h.turnstileSiteKey) == "" {
-			h.fail(w, http.StatusServiceUnavailable, "验证服务未配置", "首页验证服务未配置")
-			return
-		}
-		h.render(w, "home-verification", map[string]any{
-			"PageTitle":        "安全验证",
-			"Action":           "/connect/home/verify",
-			"TurnstileSiteKey": h.turnstileSiteKey,
-			"Layout":           h.layoutFor(r, subject, "home"),
-		})
+		http.Redirect(w, r, "/connect/home/verify", http.StatusSeeOther)
 		return
 	}
 	h.render(w, "level-progress", map[string]any{
@@ -109,19 +100,26 @@ func (h *HTTPHandler) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) verifyHome(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
+	switch r.Method {
+	case http.MethodGet:
+		h.showHomeVerification(w, r)
+		return
+	case http.MethodPost:
+		break
+	default:
+		w.Header().Set("Allow", "GET, POST")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	if _, ok := h.authenticated(w, r); !ok {
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store")
 	if !h.validCSRF(r) {
 		h.fail(w, http.StatusForbidden, "请求已过期", "CSRF 校验失败")
 		return
 	}
-	if h.turnstile == nil || strings.TrimSpace(h.turnstileSiteKey) == "" {
+	if !h.homeTurnstileConfigured() {
 		h.fail(w, http.StatusServiceUnavailable, "验证服务未配置", "首页验证服务未配置")
 		return
 	}
@@ -134,6 +132,37 @@ func (h *HTTPHandler) verifyHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (h *HTTPHandler) showHomeVerification(w http.ResponseWriter, r *http.Request) {
+	subject, ok := h.authenticated(w, r)
+	if !ok {
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	verified, err := h.sessions.HomeVerified(r)
+	if err != nil {
+		h.fail(w, http.StatusServiceUnavailable, "无法读取验证状态", "首页验证状态暂时不可用")
+		return
+	}
+	if verified {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	if !h.homeTurnstileConfigured() {
+		h.fail(w, http.StatusServiceUnavailable, "验证服务未配置", "首页验证服务未配置")
+		return
+	}
+	h.render(w, "home-verification", map[string]any{
+		"PageTitle":        "安全验证",
+		"Action":           "/connect/home/verify",
+		"TurnstileSiteKey": h.turnstileSiteKey,
+		"Layout":           h.layoutFor(r, subject, "home"),
+	})
+}
+
+func (h *HTTPHandler) homeTurnstileConfigured() bool {
+	return h != nil && h.turnstile != nil && strings.TrimSpace(h.turnstileSiteKey) != ""
 }
 
 func (h *HTTPHandler) listOrCreate(w http.ResponseWriter, r *http.Request) {

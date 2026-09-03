@@ -160,15 +160,28 @@ func TestHTTPHandlerShowsTurnstileGateOnFirstHomepageVisit(t *testing.T) {
 	response := httptest.NewRecorder()
 	mux.ServeHTTP(response, request)
 
-	if response.Code != http.StatusOK {
-		t.Fatalf("homepage gate status = %d, body = %q", response.Code, response.Body.String())
+	if response.Code != http.StatusSeeOther || response.Header().Get("Location") != "/connect/home/verify" {
+		t.Fatalf("homepage gate redirect = %d/%q, body = %q", response.Code, response.Header().Get("Location"), response.Body.String())
 	}
-	body := response.Body.String()
+
+	gateRequest := httptest.NewRequest(http.MethodGet, "/connect/home/verify", nil)
+	for _, cookie := range request.Cookies() {
+		gateRequest.AddCookie(cookie)
+	}
+	gateResponse := httptest.NewRecorder()
+	mux.ServeHTTP(gateResponse, gateRequest)
+	if gateResponse.Code != http.StatusOK {
+		t.Fatalf("verification page status = %d, body = %q", gateResponse.Code, gateResponse.Body.String())
+	}
+	if got := gateResponse.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("verification page Cache-Control = %q, want no-store", got)
+	}
+	body := gateResponse.Body.String()
 	if !strings.Contains(body, `class="cf-turnstile"`) || !strings.Contains(body, `data-action="home"`) {
-		t.Fatalf("homepage gate missing Turnstile widget: %q", body)
+		t.Fatalf("verification page missing Turnstile widget: %q", body)
 	}
-	if strings.Contains(body, "用户等级进度") {
-		t.Fatalf("homepage content rendered before verification: %q", body)
+	if strings.Contains(body, "用户等级进度") || strings.Contains(body, `class="portal-shell"`) {
+		t.Fatalf("homepage content/layout rendered before verification: %q", body)
 	}
 	if progress.calls != 0 {
 		t.Fatalf("CurrentLevelProgress() calls = %d, want 0", progress.calls)
@@ -229,6 +242,14 @@ func TestHTTPHandlerAcceptsHomepageTurnstileAndRendersContentAfterVerification(t
 	if progress.calls != 1 {
 		t.Fatalf("CurrentLevelProgress() calls = %d, want 1", progress.calls)
 	}
+
+	gateAgainRequest := httptest.NewRequest(http.MethodGet, "/connect/home/verify", nil)
+	gateAgainRequest.AddCookie(cookie)
+	gateAgainResponse := httptest.NewRecorder()
+	mux.ServeHTTP(gateAgainResponse, gateAgainRequest)
+	if gateAgainResponse.Code != http.StatusSeeOther || gateAgainResponse.Header().Get("Location") != "/" {
+		t.Fatalf("verified session gate response = %d/%q", gateAgainResponse.Code, gateAgainResponse.Header().Get("Location"))
+	}
 }
 
 func TestHTTPHandlerKeepsHomepageBlockedWhenTurnstileFails(t *testing.T) {
@@ -273,8 +294,8 @@ func TestHTTPHandlerKeepsHomepageBlockedWhenTurnstileFails(t *testing.T) {
 	homeRequest.AddCookie(cookie)
 	homeResponse := httptest.NewRecorder()
 	mux.ServeHTTP(homeResponse, homeRequest)
-	if !strings.Contains(homeResponse.Body.String(), `class="cf-turnstile"`) || strings.Contains(homeResponse.Body.String(), "用户等级进度") {
-		t.Fatalf("homepage was not kept behind Turnstile: %q", homeResponse.Body.String())
+	if homeResponse.Code != http.StatusSeeOther || homeResponse.Header().Get("Location") != "/connect/home/verify" {
+		t.Fatalf("failed verification did not return to gate: %d/%q", homeResponse.Code, homeResponse.Header().Get("Location"))
 	}
 }
 

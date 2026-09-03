@@ -1,14 +1,31 @@
-{{template "portal-page-start" .}}
+{{define "turnstile-page-start"}}
+<!doctype html>
+<html lang="zh-CN">
+{{template "portal-head" .}}
+<body class="portal-body turnstile-interstitial-body">
+<a class="skip-link" href="#main-content">跳到验证内容</a>
+<header class="turnstile-interstitial-header">
+  <a class="portal-brand" href="/" aria-label="XAI Connect 首页">
+    <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5l6.3 7L5 19m14-14l-6.3 7L19 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <span class="brand-name">XAI Connect</span>
+  </a>
+</header>
+<main id="main-content" class="turnstile-interstitial-main">
+{{end}}
 
-<div class="turnstile-page">
-  <nav class="breadcrumbs" aria-label="面包屑">
-    <span>首页</span>
-  </nav>
+{{define "turnstile-page-end"}}
+</main>
+</body>
+</html>
+{{end}}
 
+{{template "turnstile-page-start" .}}
+
+<div class="turnstile-interstitial">
   <section class="panel turnstile-gate" aria-labelledby="turnstile-gate-title">
     <span class="turnstile-kicker">SECURITY CHECK</span>
     <h1 id="turnstile-gate-title">进入首页前确认访问</h1>
-    <p class="lead">Cloudflare 会根据当前访问风险自动决定是否需要额外交互。完成验证后即可查看你的等级进度。</p>
+    <p class="lead">Cloudflare 会根据当前访问风险自动决定是否需要额外交互。验证通过后才会进入首页。</p>
     <form method="post" action="{{.Action}}">
       <input type="hidden" name="csrf_token" value="{{.Layout.CSRFToken}}">
       <div class="cf-turnstile" data-sitekey="{{.TurnstileSiteKey}}" data-action="home"></div>
@@ -19,4 +36,4 @@
   </section>
 </div>
 
-{{template "portal-page-end" .}}
+{{template "turnstile-page-end" .}}
