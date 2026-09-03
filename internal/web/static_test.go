@@ -39,6 +39,40 @@ func TestAssetHandlerServesStylesheetsWithCaching(t *testing.T) {
 	}
 }
 
+func TestAssetHandlerServesFaviconWithCaching(t *testing.T) {
+	mux := http.NewServeMux()
+	RegisterAssetRoutes(mux)
+
+	url := AssetURL("favicon.svg")
+	if url == AssetsPath+"/favicon.svg" || !strings.HasPrefix(url, AssetsPath+"/favicon.") {
+		t.Fatalf("AssetURL(favicon.svg) = %q, want content-addressed path", url)
+	}
+
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, url, nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("favicon status = %d, want 200", response.Code)
+	}
+	if got := response.Header().Get("Content-Type"); !strings.Contains(got, "image/svg+xml") {
+		t.Fatalf("favicon content-type = %q, want image/svg+xml", got)
+	}
+	if !strings.Contains(response.Body.String(), "<svg") {
+		t.Fatalf("favicon body does not contain an SVG document: %q", response.Body.String())
+	}
+
+	legacy := httptest.NewRecorder()
+	mux.ServeHTTP(legacy, httptest.NewRequest(http.MethodGet, AssetsPath+"/favicon.svg", nil))
+	if legacy.Code != http.StatusOK {
+		t.Fatalf("legacy favicon status = %d, want 200", legacy.Code)
+	}
+	if legacy.Body.String() != response.Body.String() {
+		t.Fatal("legacy favicon alias serves different content than the fingerprinted URL")
+	}
+	if cache := response.Header().Get("Cache-Control"); !strings.Contains(cache, "immutable") {
+		t.Fatalf("fingerprinted favicon Cache-Control = %q, want immutable", cache)
+	}
+}
+
 func TestAssetHandlerRejectsUnknownFilesAndMethods(t *testing.T) {
 	mux := http.NewServeMux()
 	RegisterAssetRoutes(mux)

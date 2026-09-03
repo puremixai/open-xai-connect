@@ -10,15 +10,15 @@ import (
 	"strings"
 )
 
-//go:embed static/*.css
+//go:embed static/*
 var staticFS embed.FS
 
-// asset describes one embedded stylesheet served under /connect/assets/.
-// Stylesheets are content-addressed: AssetURL returns a fingerprinted path
-// (for example /connect/assets/portal.1b2f90ca.css) that changes whenever the
-// file content changes, so those URLs can be cached indefinitely. The plain
-// name keeps working as a short-lived compatibility alias for HTML that is
-// still in flight from a deploy.
+// asset describes one embedded portal asset served under /connect/assets/.
+// Assets are content-addressed: AssetURL returns a fingerprinted path (for
+// example /connect/assets/portal.1b2f90ca.css) that changes whenever the file
+// content changes, so those URLs can be cached indefinitely. The plain name
+// keeps working as a short-lived compatibility alias for HTML that is still in
+// flight from a deploy.
 type asset struct {
 	name        string
 	version     string
@@ -34,7 +34,11 @@ var assetIndex = func() map[string]asset {
 		return index
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".css") {
+		if entry.IsDir() {
+			continue
+		}
+		contentType, ok := assetContentType(entry.Name())
+		if !ok {
 			continue
 		}
 		body, err := staticFS.ReadFile(path.Join("static", entry.Name()))
@@ -46,22 +50,34 @@ var assetIndex = func() map[string]asset {
 		item := asset{
 			name:        entry.Name(),
 			version:     version,
-			contentType: "text/css; charset=utf-8",
+			contentType: contentType,
 			etag:        `"` + hex.EncodeToString(sum[:16]) + `"`,
 			body:        body,
 		}
-		base := strings.TrimSuffix(entry.Name(), ".css")
+		ext := path.Ext(entry.Name())
+		base := strings.TrimSuffix(entry.Name(), ext)
 		index["/"+entry.Name()] = item
-		index["/"+base+"."+version+".css"] = item
+		index["/"+base+"."+version+ext] = item
 	}
 	return index
 }()
 
-// AssetsPath is the URL prefix under which the embedded stylesheets are
-// served, e.g. AssetsPath + "/portal.css" inside template link tags.
+func assetContentType(name string) (string, bool) {
+	switch strings.ToLower(path.Ext(name)) {
+	case ".css":
+		return "text/css; charset=utf-8", true
+	case ".svg":
+		return "image/svg+xml", true
+	default:
+		return "", false
+	}
+}
+
+// AssetsPath is the URL prefix under which embedded portal assets are served,
+// e.g. AssetsPath + "/portal.css" inside template link tags.
 const AssetsPath = "/connect/assets"
 
-// AssetURL returns the cache-busting URL of an embedded stylesheet, e.g.
+// AssetURL returns the cache-busting URL of an embedded asset, e.g.
 // AssetURL("portal.css") resolves to /connect/assets/portal.<version>.css.
 // Unknown names fall back to the legacy path so the failure mode is a plain
 // 404 instead of a broken template.
@@ -70,14 +86,15 @@ func AssetURL(name string) string {
 	if !ok {
 		return AssetsPath + "/" + path.Base(name)
 	}
-	base := strings.TrimSuffix(item.name, ".css")
-	return AssetsPath + "/" + base + "." + item.version + ".css"
+	ext := path.Ext(item.name)
+	base := strings.TrimSuffix(item.name, ext)
+	return AssetsPath + "/" + base + "." + item.version + ext
 }
 
-// RegisterAssetRoutes serves the embedded portal stylesheets. Fingerprinted
-// URLs are immutable (the content hash is part of the path), so they carry a
+// RegisterAssetRoutes serves the embedded portal assets. Fingerprinted URLs
+// are immutable (the content hash is part of the path), so they carry a
 // one-year lifetime; the legacy alias stays short-lived so stale references
-// heal quickly instead of pinning an old stylesheet for a week.
+// heal quickly instead of pinning an old asset for a week.
 func RegisterAssetRoutes(mux *http.ServeMux) {
 	mux.HandleFunc(AssetsPath+"/", serveAsset)
 }

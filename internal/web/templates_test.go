@@ -42,6 +42,55 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 	}
 }
 
+func TestRendererIncludesFaviconInEveryPageHead(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	cases := []struct {
+		name string
+		data any
+	}{
+		{
+			name: "app-list",
+			data: map[string]any{
+				"Apps":   []domain.Application{},
+				"Layout": Layout{Active: "apps"},
+			},
+		},
+		{
+			name: "consent",
+			data: map[string]any{
+				"Client": map[string]any{"Name": "Example"},
+				"Scopes": []string{"openid"},
+			},
+		},
+		{
+			name: "error",
+			data: map[string]any{
+				"Title": "Error",
+				"Back":  "/",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			if err := renderer.Render(response, tc.name, tc.data); err != nil {
+				t.Fatalf("Render() error = %v", err)
+			}
+			body := response.Body.String()
+			if got := strings.Count(body, `<link rel="icon" type="image/svg+xml"`); got != 1 {
+				t.Fatalf("favicon link count = %d, want one: %q", got, body)
+			}
+			if !strings.Contains(body, AssetsPath+"/favicon.") {
+				t.Fatalf("favicon link is not content-addressed: %q", body)
+			}
+		})
+	}
+}
+
 func TestRendererKeepsLevelNavigationAndHidesLevelProgressOnApplicationOverview(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {
