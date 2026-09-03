@@ -42,7 +42,7 @@ func TestRendererIncludesRoleAwarePortalNavigation(t *testing.T) {
 	}
 }
 
-func TestRendererHidesLevelNavigationOnApplicationOverview(t *testing.T) {
+func TestRendererKeepsLevelNavigationAndHidesLevelProgressOnApplicationOverview(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {
 		t.Fatalf("NewRenderer() error = %v", err)
@@ -55,8 +55,8 @@ func TestRendererHidesLevelNavigationOnApplicationOverview(t *testing.T) {
 		t.Fatalf("Render() error = %v", err)
 	}
 	body := response.Body.String()
-	if strings.Contains(body, `href="/">我的等级</a>`) {
-		t.Fatalf("application overview must not show the level navigation link: %q", body)
+	if !strings.Contains(body, `href="/">我的等级</a>`) {
+		t.Fatalf("application overview must keep the level navigation link: %q", body)
 	}
 	if strings.Contains(body, `class="level-progress-panel"`) || strings.Contains(body, "用户等级进度") {
 		t.Fatalf("application overview must not show the level progress panel: %q", body)
