@@ -221,6 +221,7 @@ func (h *HTTPHandler) newForm(w http.ResponseWriter, r *http.Request) {
 	}
 	data := h.formData(r, "创建应用", "/connect/apps")
 	data["PageTitle"] = "创建应用"
+	data["RequirePKCENonce"] = true
 	data["Layout"] = h.layoutFor(r, subject, "new")
 	h.render(w, "app-form", data)
 }
@@ -251,6 +252,7 @@ func (h *HTTPHandler) editForm(w http.ResponseWriter, r *http.Request, subject s
 	data["Callbacks"] = strings.Join(app.CallbackURLs, "\n")
 	data["Domains"] = strings.Join(app.VerifiedDomains, "\n")
 	data["LogoURL"] = app.LogoURL
+	data["RequirePKCENonce"] = app.RequirePKCENonce
 	data["Layout"] = h.layoutFor(r, subject, "new")
 	h.render(w, "app-form", data)
 }
@@ -274,8 +276,9 @@ func (h *HTTPHandler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	input := DraftInput{
 		Name: r.FormValue("name"), Description: r.FormValue("description"),
-		CallbackURLs:    splitLines(r.FormValue("callbacks")),
-		VerifiedDomains: splitLines(r.FormValue("domains")),
+		CallbackURLs:     splitLines(r.FormValue("callbacks")),
+		VerifiedDomains:  splitLines(r.FormValue("domains")),
+		RequirePKCENonce: parseCheckbox(r, "require_pkce_nonce"),
 	}
 	if h.assets != nil {
 		if file, header, err := r.FormFile("logo"); err == nil {
@@ -371,11 +374,12 @@ func (h *HTTPHandler) update(w http.ResponseWriter, r *http.Request, subject str
 		return
 	}
 	input := DraftInput{
-		Name:            r.FormValue("name"),
-		Description:     r.FormValue("description"),
-		CallbackURLs:    splitLines(r.FormValue("callbacks")),
-		VerifiedDomains: splitLines(r.FormValue("domains")),
-		LogoURL:         app.LogoURL,
+		Name:             r.FormValue("name"),
+		Description:      r.FormValue("description"),
+		CallbackURLs:     splitLines(r.FormValue("callbacks")),
+		VerifiedDomains:  splitLines(r.FormValue("domains")),
+		LogoURL:          app.LogoURL,
+		RequirePKCENonce: parseCheckbox(r, "require_pkce_nonce"),
 	}
 	if h.assets != nil {
 		if file, header, fileErr := r.FormFile("logo"); fileErr == nil {
@@ -528,6 +532,21 @@ func (h *HTTPHandler) fail(w http.ResponseWriter, status int, title, message str
 	if err := h.renderer.RenderStatus(w, status, "error", map[string]any{"Title": title, "Message": message, "Back": "/connect/apps"}); err != nil {
 		http.Error(w, message, status)
 	}
+}
+
+func parseCheckbox(r *http.Request, name string) *bool {
+	values, ok := r.Form[name]
+	if !ok {
+		return nil
+	}
+	enabled := false
+	for _, value := range values {
+		if value == "1" || strings.EqualFold(value, "true") {
+			enabled = true
+			break
+		}
+	}
+	return &enabled
 }
 
 func splitLines(value string) []string {

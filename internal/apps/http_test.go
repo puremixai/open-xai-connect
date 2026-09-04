@@ -353,6 +353,7 @@ func TestHTTPHandlerAllowsOwnerToEditAnUnpublishedApplication(t *testing.T) {
 	form := url.Values{
 		"csrf_token": {token}, "name": {"Updated Example"}, "description": {"Updated application"},
 		"callbacks": {"https://app.example/updated"}, "domains": {"app.example"},
+		"require_pkce_nonce": {"0"},
 	}
 	updateRequest := httptest.NewRequest(http.MethodPost, "/connect/apps/"+string(app.ID)+"/edit", strings.NewReader(form.Encode()))
 	updateRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -368,6 +369,9 @@ func TestHTTPHandlerAllowsOwnerToEditAnUnpublishedApplication(t *testing.T) {
 	}
 	if updated.Name != "Updated Example" || updated.CallbackURLs[0] != "https://app.example/updated" {
 		t.Fatalf("updated app = %#v", updated)
+	}
+	if updated.RequirePKCENonce {
+		t.Fatal("unchecked PKCE/nonce setting was not persisted")
 	}
 	updated.Status = domain.StatusApproved
 	updated.ClientID = domain.ClientID("client_1")

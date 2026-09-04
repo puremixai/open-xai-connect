@@ -73,12 +73,12 @@ func (s *Store) Create(ctx context.Context, app domain.Application) error {
 	}
 	defer tx.Rollback(ctx)
 	_, err = tx.Exec(ctx, `INSERT INTO applications
-		(id, owner_subject, name, description, logo_url, status, client_id,
+		(id, owner_subject, name, description, logo_url, status, require_pkce_nonce, client_id,
 		 encrypted_client_secret, secret_version, review_note, reviewed_by, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,NULLIF($7,''),$8,$9,$10,$11,$12,$13)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,NULLIF($8,''),$9,$10,$11,$12,$13,$14)`,
 		app.ID, app.OwnerSubject, app.Name, app.Description, app.LogoURL, app.Status,
-		app.ClientID, app.EncryptedClientSecret, app.SecretVersion, app.ReviewNote, app.ReviewedBy,
-		app.CreatedAt, app.UpdatedAt)
+		app.RequirePKCENonce, app.ClientID, app.EncryptedClientSecret, app.SecretVersion,
+		app.ReviewNote, app.ReviewedBy, app.CreatedAt, app.UpdatedAt)
 	if err != nil {
 		return mapError(err)
 	}
@@ -191,10 +191,11 @@ func (s *Store) Save(ctx context.Context, app domain.Application) error {
 	}
 	defer tx.Rollback(ctx)
 	tag, err := tx.Exec(ctx, `UPDATE applications SET owner_subject=$1, name=$2, description=$3,
-		logo_url=$4, status=$5, client_id=NULLIF($6,''), encrypted_client_secret=$7,
-		secret_version=$8, review_note=$9, reviewed_by=$10, updated_at=$11 WHERE id=$12`,
-		app.OwnerSubject, app.Name, app.Description, app.LogoURL, app.Status, app.ClientID,
-		app.EncryptedClientSecret, app.SecretVersion, app.ReviewNote, app.ReviewedBy, app.UpdatedAt, app.ID)
+		logo_url=$4, status=$5, require_pkce_nonce=$6, client_id=NULLIF($7,''), encrypted_client_secret=$8,
+		secret_version=$9, review_note=$10, reviewed_by=$11, updated_at=$12 WHERE id=$13`,
+		app.OwnerSubject, app.Name, app.Description, app.LogoURL, app.Status, app.RequirePKCENonce,
+		app.ClientID, app.EncryptedClientSecret, app.SecretVersion, app.ReviewNote, app.ReviewedBy,
+		app.UpdatedAt, app.ID)
 	if err != nil {
 		return mapError(err)
 	}
@@ -219,7 +220,7 @@ func (s *Store) Delete(ctx context.Context, id domain.ApplicationID) error {
 }
 
 const applicationSelect = `SELECT id, owner_subject, name, description, logo_url, status,
-	COALESCE(client_id,''), encrypted_client_secret, secret_version, review_note, reviewed_by,
+	require_pkce_nonce, COALESCE(client_id,''), encrypted_client_secret, secret_version, review_note, reviewed_by,
 	created_at, updated_at FROM applications`
 
 type rowScanner interface {
@@ -229,7 +230,7 @@ type rowScanner interface {
 func scanApplication(row rowScanner) (domain.Application, error) {
 	var app domain.Application
 	err := row.Scan(&app.ID, &app.OwnerSubject, &app.Name, &app.Description, &app.LogoURL,
-		&app.Status, &app.ClientID, &app.EncryptedClientSecret, &app.SecretVersion,
+		&app.Status, &app.RequirePKCENonce, &app.ClientID, &app.EncryptedClientSecret, &app.SecretVersion,
 		&app.ReviewNote, &app.ReviewedBy, &app.CreatedAt, &app.UpdatedAt)
 	return app, err
 }

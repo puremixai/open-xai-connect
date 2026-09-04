@@ -1,0 +1,2 @@
+ALTER TABLE applications
+    ADD COLUMN IF NOT EXISTS require_pkce_nonce BOOLEAN NOT NULL DEFAULT TRUE;

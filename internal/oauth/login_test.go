@@ -25,6 +25,17 @@ func TestValidateLoginRequestAcceptsCodePKCEAndNonce(t *testing.T) {
 	}
 }
 
+func TestValidateLoginRequestAllowsMissingPKCEAndNonceWhenDisabled(t *testing.T) {
+	request := validLoginRequest()
+	request.RequestURL = strings.Replace(request.RequestURL, "&code_challenge=challenge-1", "", 1)
+	request.RequestURL = strings.Replace(request.RequestURL, "&code_challenge_method=S256", "", 1)
+	request.RequestURL = strings.Replace(request.RequestURL, "&nonce=nonce-1", "", 1)
+
+	if err := ValidateLoginRequestWithPKCENonce(request, false); err != nil {
+		t.Fatalf("ValidateLoginRequestWithPKCENonce() error = %v", err)
+	}
+}
+
 func TestValidateLoginRequestRejectsNonCodeOrMissingPKCE(t *testing.T) {
 	cases := []struct {
 		name string

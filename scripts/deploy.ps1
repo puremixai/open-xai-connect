@@ -135,6 +135,7 @@ trap 'rm -f -- "$remote_archive"' EXIT
 
 tar -xzf "$remote_archive" -C "$remote_dir"
 docker compose --env-file "$remote_dir/.env" -f "$compose_file" config --quiet
+docker compose --env-file "$remote_dir/.env" -f "$compose_file" exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$remote_dir/migrations/003_application_pkce_nonce.sql"
 docker compose --env-file "$remote_dir/.env" -f "$compose_file" build portal
 docker compose --env-file "$remote_dir/.env" -f "$compose_file" up -d --no-deps portal
 

@@ -2,13 +2,13 @@
 
 XAI Connect 是基于 Discourse 账号的独立身份认证平台，对外提供标准的 OpenID Connect（OIDC）服务。
 
-接入方不需要接触 Discourse 密码、Cookie 或 Discourse API Key，只需要把用户重定向到 XAI Connect，完成授权码 + PKCE 登录，再用 Access Token 获取用户资料。
+接入方不需要接触 Discourse 密码、Cookie 或 Discourse API Key，只需要把用户重定向到 XAI Connect，完成授权码 + PKCE 登录，再用 Access Token 获取用户资料。应用默认强制校验 PKCE + nonce；如需兼容旧客户端，可在应用编辑页单独关闭这项校验。
 
 当前线上地址：<https://connect.xai.run>
 
 ## 接入前提
 
-XAI Connect 当前面向服务端 Web 应用，使用 OIDC Authorization Code + PKCE：
+XAI Connect 当前面向服务端 Web 应用，默认使用 OIDC Authorization Code + PKCE：
 
 - 接入方必须拥有服务端，用于保存 Client Secret、`state`、`nonce`、`code_verifier` 和本地 Session。
 - Client Secret 不能放入浏览器、移动端安装包、前端源码、日志或 URL。
@@ -25,6 +25,7 @@ XAI Connect 当前面向服务端 Web 应用，使用 OIDC Authorization Code + 
    - 一个或多个精确的 HTTPS 回调地址；
    - 能覆盖所有回调主机的已验证域名；
    - 可选的 PNG/JPEG Logo。
+   - 安全策略默认开启“强制校验 PKCE + nonce”；只有兼容旧客户端时才关闭。
 3. 保存应用。平台默认免人工审核，应用会自动进入 `provisioning`，后台异步创建 OIDC Client。
 4. Provisioning 成功后应用状态变为 `approved`，页面显示 Client ID。
 5. 应用所有者在应用详情页完成近期敏感操作确认后，可以查看或轮换 Client Secret。轮换后旧 Secret 会立即失效；Secret 可以明文显示，请立即保存到服务端密钥管理系统。
@@ -72,6 +73,7 @@ GET https://connect.xai.run/.well-known/openid-configuration
 - Grant Type：`authorization_code`、`refresh_token`
 - Token Endpoint Auth：`client_secret_basic`
 - PKCE：仅 `S256`
+- PKCE + nonce 强制校验：按应用配置，默认开启；关闭后仍校验 `state`、精确回调地址、授权码响应类型和 Scope
 - Access Token：不透明 Token，不要尝试把它当作 JWT 解码
 
 ## 3. 登录流程：Authorization Code + PKCE

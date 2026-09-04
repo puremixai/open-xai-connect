@@ -28,6 +28,10 @@ type AuthorizationRequest struct {
 }
 
 func ValidateLoginRequest(request hydra.LoginRequest) error {
+	return ValidateLoginRequestWithPKCENonce(request, true)
+}
+
+func ValidateLoginRequestWithPKCENonce(request hydra.LoginRequest, requirePKCENonce bool) error {
 	if request.Challenge == "" || request.Client.ID == "" || request.RequestURL == "" {
 		return ErrInvalidAuthorization
 	}
@@ -50,8 +54,11 @@ func ValidateLoginRequest(request hydra.LoginRequest) error {
 	if err != nil || !sameStrings(scope, request.RequestedScope) || !contains(scope, "openid") {
 		return ErrInvalidAuthorization
 	}
-	if values.Get("state") == "" || values.Get("code_challenge") == "" ||
-		values.Get("code_challenge_method") != "S256" || values.Get("nonce") == "" {
+	if values.Get("state") == "" {
+		return ErrInvalidAuthorization
+	}
+	if requirePKCENonce && (values.Get("code_challenge") == "" ||
+		values.Get("code_challenge_method") != "S256" || values.Get("nonce") == "") {
 		return ErrInvalidAuthorization
 	}
 	return nil

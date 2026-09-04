@@ -29,3 +29,16 @@ func TestEmailMigrationAddsUserEmail(t *testing.T) {
 		t.Fatalf("email migration does not add users.email: %s", content)
 	}
 }
+
+func TestApplicationSecurityMigrationAddsPKCENonceSetting(t *testing.T) {
+	sql, err := os.ReadFile("../../migrations/003_application_pkce_nonce.sql")
+	if err != nil {
+		t.Fatalf("read PKCE/nonce migration: %v", err)
+	}
+	content := strings.ToLower(string(sql))
+	if !strings.Contains(content, "alter table applications") ||
+		!strings.Contains(content, "require_pkce_nonce") ||
+		!strings.Contains(content, "default true") {
+		t.Fatalf("PKCE/nonce migration does not add a default-enabled application setting: %s", content)
+	}
+}

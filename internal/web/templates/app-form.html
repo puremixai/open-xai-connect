@@ -60,6 +60,16 @@
           </div>
         </fieldset>
 
+        <fieldset class="form-section">
+          <legend><span>3</span>安全策略</legend>
+          <div class="field checkbox-field">
+            <input type="hidden" name="require_pkce_nonce" value="0">
+            <input id="require_pkce_nonce" type="checkbox" name="require_pkce_nonce" value="1" {{if .RequirePKCENonce}}checked{{end}}>
+            <label for="require_pkce_nonce">强制校验 PKCE + nonce</label>
+            <p class="field-help">默认开启，推荐保持开启。关闭后可兼容不发送 PKCE 或 nonce 的旧客户端，但仍会校验 state、回调地址和授权码流程。</p>
+          </div>
+        </fieldset>
+
         <div class="form-actions form-actions-sticky">
           <a class="button button-secondary" href="/connect/apps">取消</a>
           <button class="button" type="submit">{{if eq .Title "编辑应用"}}保存资料{{else}}创建并上线{{end}}</button>

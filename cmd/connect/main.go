@@ -169,7 +169,7 @@ func newRuntime(ctx context.Context, cfg config.Config) (*runtime, error) {
 		Apps: db, Outbox: outbox, Audit: audit, Access: access,
 	})
 	consentService := oauth.NewConsentService(hydraAdmin, status, db, consents, cfg.RefreshIdleTTL)
-	loginService := oauth.NewLoginService(hydraAdmin, status, cfg.SessionSlidingTTL)
+	loginService := oauth.NewLoginService(hydraAdmin, status, db, cfg.SessionSlidingTTL)
 	userinfo := oauth.NewUserInfoService(hydraAdmin, status, db, db)
 	sessionStore := session.NewRedisStore(redisClient, cfg.SessionSlidingTTL, cfg.SessionAbsoluteTTL)
 	sessions := session.NewHTTPHandler(sessionStore, cfg.CookieName, cfg.CookieSecure)

@@ -102,7 +102,7 @@ func TestReviewedApplicationOIDCFlowAndSuspensionDeny(t *testing.T) {
 		RequestedScope: []string{"openid", "profile", "community"},
 		RequestURL:     "https://connect.example/oauth2/auth?client_id=" + string(app.ClientID) + "&redirect_uri=https%3A%2F%2Fclient.example%2Fcallback&response_type=code&scope=openid+profile+community&state=state-1&code_challenge=challenge-1&code_challenge_method=S256&nonce=nonce-1",
 	}
-	login := oauth.NewLoginService(hydraFake, status, time.Hour)
+	login := oauth.NewLoginService(hydraFake, status, appsRepo, time.Hour)
 	if _, err := login.Complete(context.Background(), "login-1", string(developer.Subject)); err != nil {
 		t.Fatal(err)
 	}

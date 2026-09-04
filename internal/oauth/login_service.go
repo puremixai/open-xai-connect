@@ -8,6 +8,7 @@ import (
 
 	"connect.xai.run/internal/hydra"
 	"connect.xai.run/internal/identity"
+	"connect.xai.run/internal/store"
 )
 
 var ErrLoginDenied = errors.New("login denied")
@@ -15,14 +16,15 @@ var ErrLoginDenied = errors.New("login denied")
 type LoginService struct {
 	hydra       hydra.Client
 	status      identity.StatusLookup
+	apps        store.ApplicationRepository
 	rememberFor time.Duration
 }
 
-func NewLoginService(hydraClient hydra.Client, status identity.StatusLookup, rememberFor time.Duration) *LoginService {
+func NewLoginService(hydraClient hydra.Client, status identity.StatusLookup, apps store.ApplicationRepository, rememberFor time.Duration) *LoginService {
 	if rememberFor <= 0 {
 		rememberFor = 30 * 24 * time.Hour
 	}
-	return &LoginService{hydra: hydraClient, status: status, rememberFor: rememberFor}
+	return &LoginService{hydra: hydraClient, status: status, apps: apps, rememberFor: rememberFor}
 }
 
 func (s *LoginService) Begin(ctx context.Context, challenge string) (hydra.LoginRequest, error) {
@@ -33,7 +35,15 @@ func (s *LoginService) Begin(ctx context.Context, challenge string) (hydra.Login
 	if err != nil {
 		return hydra.LoginRequest{}, err
 	}
-	if err := ValidateLoginRequest(request); err != nil {
+	requirePKCENonce := true
+	if s.apps != nil {
+		app, err := s.apps.GetByClientID(ctx, request.Client.ID)
+		if err != nil {
+			return hydra.LoginRequest{}, fmt.Errorf("load OAuth application settings: %w", err)
+		}
+		requirePKCENonce = app.RequirePKCENonce
+	}
+	if err := ValidateLoginRequestWithPKCENonce(request, requirePKCENonce); err != nil {
 		return hydra.LoginRequest{}, fmt.Errorf("%w: %v", ErrLoginDenied, err)
 	}
 	return request, nil

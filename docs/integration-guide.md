@@ -10,11 +10,13 @@ XAI Connect 对外提供 OpenID Connect（OIDC）登录接口。用户账号、�
 https://connect.xai.run
 ```
 
-接入协议固定为：
+接入协议默认使用：
 
 ```text
 OIDC Authorization Code + PKCE（S256）+ client_secret_basic
 ```
+
+应用控制台默认强制校验 PKCE + nonce。确实需要兼容旧客户端时，应用所有者可以在应用编辑页关闭这项强制校验；兼容模式仍会校验 `state`、精确回调地址、`code` 响应类型、Scope 和授权码流程，接入方仍应主动发送并校验 PKCE 与 nonce。
 
 ## 1. 先确认项目是否适合接入
 
@@ -179,7 +181,7 @@ OIDC 库的关键配置应等价于：
 | Client Secret | 从应用详情页获取，仅服务端保存 |
 | Redirect URI | 已登记的精确 HTTPS URL |
 | Response Type | `code` |
-| PKCE | 启用，方法为 `S256` |
+| PKCE | 默认启用，方法为 `S256`；兼容模式允许授权入口省略 PKCE，但新客户端仍应启用 |
 | Token Endpoint Auth | `client_secret_basic` |
 | Scope | 至少包含 `openid` |
 | 本地用户唯一键 | Issuer + `sub` |
@@ -201,6 +203,7 @@ OIDC 库的关键配置应等价于：
 - Grant Type：`authorization_code`、`refresh_token`；
 - Token Endpoint Auth：`client_secret_basic`；
 - PKCE：仅 `S256`；
+- PKCE + nonce 强制校验：按应用配置，默认开启；
 - Access Token：不透明 Token，不能按 JWT 解码；
 - Subject Type：`public`。
 
@@ -557,7 +560,7 @@ function xaiCallback(request):
 | `state` 缺失或不匹配 | Session 丢失、重复回调或 CSRF | 立即终止，不换 Token，重新发起登录 |
 | Token 返回 `invalid_client` | Client ID/Secret 错误，或旧 Secret 已被轮换 | 检查服务端密钥配置，不在日志中输出 Secret |
 | Token 返回 `invalid_grant` | 授权码过期、已使用、回调地址不一致或 PKCE 不匹配 | 丢弃本次事务，从登录入口重新开始 |
-| Authorization Request 被拒绝 | 缺少 `nonce`、`state`、PKCE，Scope 不支持，或应用未批准 | 对照 Discovery 和本文参数表修正 |
+| Authorization Request 被拒绝 | 应用开启强制校验时缺少 `nonce`、`state`、PKCE，Scope 不支持，或应用未批准 | 对照应用安全策略、Discovery 和本文参数表修正 |
 | 回调地址不匹配 | Scheme、主机、端口、路径或尾斜杠与登记值不同 | 比较完整字符串，并检查反向代理对外地址 |
 | ID Token 校验失败 | Issuer、Audience、Nonce、签名或时间校验失败 | 不建立 Session；检查配置和服务器时钟 |
 | UserInfo 返回 `401` | Token 无效/过期、应用被撤销、用户停用或暂停 | 停止使用 Token，结束会话或要求重新登录 |

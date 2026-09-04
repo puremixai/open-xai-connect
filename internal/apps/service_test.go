@@ -104,6 +104,35 @@ func TestCreateDraftAllowsActiveConnectAdminBelowTL1(t *testing.T) {
 	}
 }
 
+func TestApplicationPKCENonceValidationDefaultsOnAndCanBeDisabled(t *testing.T) {
+	service, repo := newAppService(identity.StatusSnapshot{Subject: "sub_1", Active: true, TrustLevel: 1})
+	app, err := service.CreateDraft(context.Background(), "sub_1", validDraftInput())
+	if err != nil {
+		t.Fatalf("CreateDraft() error = %v", err)
+	}
+	if !app.RequirePKCENonce {
+		t.Fatal("new application should require PKCE and nonce by default")
+	}
+
+	disabled := false
+	input := validDraftInput()
+	input.RequirePKCENonce = &disabled
+	updated, err := service.UpdateDraft(context.Background(), "sub_1", app.ID, input)
+	if err != nil {
+		t.Fatalf("UpdateDraft() error = %v", err)
+	}
+	if updated.RequirePKCENonce {
+		t.Fatal("application security setting was not disabled")
+	}
+	stored, err := repo.Get(context.Background(), app.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if stored.RequirePKCENonce {
+		t.Fatal("disabled application security setting was not persisted")
+	}
+}
+
 func TestCreateDraftStartsProvisioningWithoutReview(t *testing.T) {
 	repo := memory.NewApplicationRepository()
 	outbox := memory.NewOutboxRepository()

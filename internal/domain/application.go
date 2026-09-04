@@ -36,6 +36,7 @@ type Application struct {
 	CallbackURLs          []string
 	VerifiedDomains       []string
 	Status                ApplicationStatus
+	RequirePKCENonce      bool
 	ClientID              ClientID
 	EncryptedClientSecret string
 	SecretVersion         int

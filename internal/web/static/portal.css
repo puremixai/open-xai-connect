@@ -264,6 +264,11 @@ h3 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 }
 .field-help { color: var(--text-3); font-size: 12.5px; }
 .required-mark, .optional-mark { margin-left: var(--space-2); color: var(--text-3); font-size: 12px; font-weight: 400; }
+.checkbox-field { grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-2); row-gap: var(--space-1); align-items: start; }
+.checkbox-field input[type="checkbox"] { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--accent); box-shadow: none; }
+.checkbox-field input[type="checkbox"]:focus { box-shadow: var(--focus-ring); }
+.checkbox-field label { cursor: pointer; }
+.checkbox-field .field-help { grid-column: 2; }
 
 .form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 

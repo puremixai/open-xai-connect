@@ -39,6 +39,7 @@
         {{if .ClientID}}<div><dt>Client ID</dt><dd class="detail-mono selectable-value">{{.ClientID}}</dd></div>{{end}}
         <div><dt>回调地址</dt><dd><ul class="endpoint-list">{{range .CallbackURLs}}<li><code>{{.}}</code></li>{{else}}<li class="muted">尚未配置</li>{{end}}</ul></dd></div>
         <div><dt>已验证域名</dt><dd><ul class="endpoint-list endpoint-list-compact">{{range .VerifiedDomains}}<li><code>{{.}}</code></li>{{else}}<li class="muted">尚未配置</li>{{end}}</ul></dd></div>
+        <div><dt>PKCE + nonce 校验</dt><dd>{{if .RequirePKCENonce}}已开启（推荐）{{else}}已关闭（兼容模式）{{end}}</dd></div>
         {{if .ReviewNote}}<div><dt>处理备注</dt><dd>{{.ReviewNote}}</dd></div>{{end}}
       </dl>
     </section>
@@ -51,7 +52,7 @@
       <ol class="detail-steps">
         <li class="{{if eq .Status "approved"}}is-done{{end}}"><span class="step-index">1</span><div><strong>确认回调地址</strong><p>授权完成后，平台只会跳转到上面登记的精确地址。</p></div></li>
         <li class="{{if eq .Status "approved"}}is-done{{end}}"><span class="step-index">2</span><div><strong>保存应用凭证</strong><p>Client ID 可用于前端配置，Client Secret 只放在服务端密钥管理系统。</p></div></li>
-        <li><span class="step-index">3</span><div><strong>使用 Authorization Code + PKCE</strong><p>接入时校验 state、nonce 和 ID Token，不要把 Secret 暴露给浏览器。</p></div></li>
+        <li><span class="step-index">3</span><div><strong>{{if .RequirePKCENonce}}使用 Authorization Code + PKCE{{else}}使用兼容模式完成授权{{end}}</strong><p>{{if .RequirePKCENonce}}接入时校验 state、nonce 和 ID Token，不要把 Secret 暴露给浏览器。{{else}}当前应用未强制要求 PKCE + nonce；仍应校验 state、ID Token 和回调地址，并尽快升级客户端。{{end}}</p></div></li>
       </ol>
     </section>
   </div>

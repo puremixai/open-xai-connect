@@ -518,6 +518,38 @@ func TestRendererShowsProvisioningActionForExistingDraft(t *testing.T) {
 	}
 }
 
+func TestRendererShowsApplicationPKCENonceSetting(t *testing.T) {
+	renderer, err := NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer() error = %v", err)
+	}
+	for _, tc := range []struct {
+		name     string
+		enabled  bool
+		contains string
+		absent   string
+	}{
+		{name: "enabled", enabled: true, contains: `type="checkbox" name="require_pkce_nonce" value="1" checked`, absent: ""},
+		{name: "disabled", enabled: false, contains: `type="checkbox" name="require_pkce_nonce" value="1"`, absent: `type="checkbox" name="require_pkce_nonce" value="1" checked`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			if err := renderer.Render(response, "app-form", map[string]any{
+				"Title": "编辑应用", "RequirePKCENonce": tc.enabled, "Layout": Layout{},
+			}); err != nil {
+				t.Fatalf("Render() error = %v", err)
+			}
+			body := response.Body.String()
+			if !strings.Contains(body, tc.contains) {
+				t.Fatalf("application security setting missing %q: %s", tc.contains, body)
+			}
+			if tc.absent != "" && strings.Contains(body, tc.absent) {
+				t.Fatalf("application security setting unexpectedly contains %q: %s", tc.absent, body)
+			}
+		})
+	}
+}
+
 func TestRendererShowsCredentialActionsForApprovedApplication(t *testing.T) {
 	renderer, err := NewRenderer()
 	if err != nil {

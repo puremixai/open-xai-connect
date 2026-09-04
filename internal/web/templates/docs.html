@@ -54,9 +54,10 @@
           <ol>
             <li>使用 Discourse 账号打开控制台并创建应用。</li>
             <li>填写应用名称、用途说明、回调地址和已验证域名。</li>
+            <li>安全策略默认强制校验 PKCE + nonce；只有确实需要兼容旧客户端时，才在应用编辑页关闭该校验。</li>
             <li>应用上线后，在详情页查看 Client ID，并按需确认身份后查看 Client Secret。</li>
           </ol>
-          <p>Client Secret 只应保存于接入项目服务端的密钥管理系统或受保护环境变量中。</p>
+          <p>Client Secret 只应保存于接入项目服务端的密钥管理系统或受保护环境变量中。兼容模式仍会校验 state、回调地址和授权码流程，建议尽快恢复 PKCE + nonce。</p>
         </section>
 
         <section id="登录流程authorization-code--pkce">

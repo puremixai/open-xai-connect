@@ -30,11 +30,12 @@ var (
 )
 
 type DraftInput struct {
-	Name            string
-	Description     string
-	LogoURL         string
-	CallbackURLs    []string
-	VerifiedDomains []string
+	Name             string
+	Description      string
+	LogoURL          string
+	CallbackURLs     []string
+	VerifiedDomains  []string
+	RequirePKCENonce *bool
 }
 
 type Dependencies struct {
@@ -108,7 +109,8 @@ func (s *Service) CreateDraft(ctx context.Context, subject string, input DraftIn
 		Description: strings.TrimSpace(input.Description), LogoURL: strings.TrimSpace(input.LogoURL),
 		CallbackURLs:    append([]string(nil), input.CallbackURLs...),
 		VerifiedDomains: normalizeDomains(input.VerifiedDomains),
-		Status:          domain.StatusDraft, CreatedAt: now, UpdatedAt: now,
+		Status:          domain.StatusDraft, RequirePKCENonce: enabledPKCENonce(input.RequirePKCENonce),
+		CreatedAt: now, UpdatedAt: now,
 	}
 	if err := s.apps.Create(ctx, app); err != nil {
 		return domain.Application{}, err
@@ -150,6 +152,9 @@ func (s *Service) UpdateDraft(ctx context.Context, subject string, id domain.App
 	app.LogoURL = strings.TrimSpace(input.LogoURL)
 	app.CallbackURLs = append([]string(nil), input.CallbackURLs...)
 	app.VerifiedDomains = normalizeDomains(input.VerifiedDomains)
+	if input.RequirePKCENonce != nil {
+		app.RequirePKCENonce = *input.RequirePKCENonce
+	}
 	app.UpdatedAt = s.now().UTC()
 	if err := s.apps.Save(ctx, app); err != nil {
 		return domain.Application{}, err
@@ -158,6 +163,13 @@ func (s *Service) UpdateDraft(ctx context.Context, subject string, id domain.App
 		return domain.Application{}, err
 	}
 	return app, nil
+}
+
+func enabledPKCENonce(value *bool) bool {
+	if value == nil {
+		return true
+	}
+	return *value
 }
 
 func (s *Service) syncApprovedClient(ctx context.Context, app domain.Application, input DraftInput) error {
