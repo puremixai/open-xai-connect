@@ -1,6 +1,8 @@
-# Open XAI Connect 运维手册
+# PureConnect 运维手册
 
-本文面向自托管维护者。首次部署请先阅读 [README](../README.md)；文中的 `connect.example.com` 和 `forum.example.com` 分别代表自己的 Connect 与 Discourse 域名。
+本文面向自托管维护者。首次部署请先阅读 [README](../README.md)；文中的 `connect.example.com` 和 `forum.example.com` 分别代表自己的 PureConnect 与 Discourse 域名。
+
+PureConnect 的品牌与仓库更名不要求迁移部署配置。继续使用现有的 `CONNECT_*` 环境变量、`connect_identity_*` 插件设置和 Compose project 名称 `xai-connect`；若原部署通过 `-p` 或 `COMPOSE_PROJECT_NAME` 自定义了项目名，也应继续沿用。保留现有数据卷、部署目录、域名、OIDC Issuer 和已注册回调地址，避免更换项目名后启动一套空数据卷。
 
 ## 部署
 
@@ -60,7 +62,7 @@ Portal 的 DiscourseConnect 待完成登录状态位于进程内。重启后正�
 ## 故障处理
 
 - Hydra admin 不可用：应用审核会停在 `provisioning`，outbox worker 会重试；不要手工在 Hydra 创建同名 Client。
-- Discourse 不可用：不能建立新的 Connect 身份；已有状态同步失败时，授权和 UserInfo fail closed。
+- Discourse 不可用：不能建立新的 PureConnect 身份；已有状态同步失败时，授权和 UserInfo fail closed。
 - Redis 不可用：新登录、CSRF、Session 和 nonce 相关操作失败；修复 Redis 后无需清理 PostgreSQL outbox。
 - 发现 Secret 出现在日志或工单中：立即在 Portal 轮换 Client Secret，撤销相关 Hydra Session，保留不含凭证正文的审计记录。
 
@@ -94,8 +96,8 @@ Portal 的 DiscourseConnect 待完成登录状态位于进程内。重启后正�
 
 4. 在“管理后台 → 群组”创建并维护：
 
-   - `connect-reviewers`：允许成员审核 Connect 应用；
-   - `connect-admins`：Connect 管理员标记，供管理级功能使用。
+   - `connect-reviewers`：允许成员审核 PureConnect 应用；
+   - `connect-admins`：PureConnect 管理员标记，供管理级功能使用。
 
    新创建的应用默认免人工审核，Portal 会自动排队创建 OIDC Client。`connect-reviewers` 和 `connect-admins` 仍可打开审核队列处理历史或特殊的 `pending_review` 应用；`connect-admins` 成员还可以访问“运营概览”，并在满足账号状态要求时绕过 TL1 创建应用。两组身份标记都会同步到 Portal，不要求管理员通过 Hydra Admin API 手工创建客户端。
 

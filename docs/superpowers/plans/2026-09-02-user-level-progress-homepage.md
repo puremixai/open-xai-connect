@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在 XAI Connect 现有首页增加 Discourse 驱动的用户等级进度面板，展示当前等级、下一等级以及达到下一等级的条件和当前进度。
+**Goal:** 在 PureConnect 现有首页增加 Discourse 驱动的用户等级进度面板，展示当前等级、下一等级以及达到下一等级的条件和当前进度。
 
 **Architecture:** Discourse 插件新增受现有 HMAC 保护的 level-progress 接口，在 Discourse 内复用当前等级升级规则计算目标等级条件。Portal 通过独立的 identity progress contract 获取并校验数据，用 Redis 缓存 5 分钟，在 /connect/apps 首页服务端渲染新增面板；现有身份状态接口、页面骨架和数据库模型保持不变。
 

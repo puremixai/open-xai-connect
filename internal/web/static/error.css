@@ -1,4 +1,4 @@
-/* XAI Connect error page stylesheet.
+/* PureConnect error page stylesheet.
  * Standalone: rendered for unauthenticated or failed requests outside the
  * portal shell, so it carries its own tokens instead of portal.css. Tokens
  * mirror portal.css so the two experiences stay visually consistent.

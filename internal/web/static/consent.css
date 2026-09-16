@@ -1,4 +1,4 @@
-/* XAI Connect consent screen stylesheet.
+/* PureConnect consent screen stylesheet.
  * Standalone: this page renders outside the portal shell during the OAuth
  * consent flow, so it carries its own tokens instead of portal.css. Tokens
  * mirror portal.css so the two experiences stay visually consistent.

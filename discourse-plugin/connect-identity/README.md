@@ -1,10 +1,10 @@
-# Discourse Connect Identity Bridge
+# PureConnect Discourse Identity Bridge
 
-这是 [Open XAI Connect](../../README.md) 的 Discourse 身份桥接插件，可连接自行部署的 Connect Portal。Discourse 仍负责账号、密码、二步验证和账号状态；插件只提供经过 HMAC-SHA256 验签的最小用户状态，并把状态变更事件发布给 Portal。
+这是 [PureConnect](../../README.md) 的 Discourse 身份桥接插件，可连接自行部署的 PureConnect Portal。Discourse 仍负责账号、密码、二步验证和账号状态；插件只提供经过 HMAC-SHA256 验签的最小用户状态，并把状态变更事件发布给 Portal。
 
 ## 安装
 
-源码位于 [puremixai/open-xai-connect](https://github.com/puremixai/open-xai-connect) 的 `discourse-plugin/connect-identity` 子目录。将该子目录作为 Discourse 的 `plugins/connect-identity` 安装，确保 `plugins/connect-identity/plugin.rb` 存在。仓库根目录不是可直接安装的 Discourse 插件目录。
+源码位于 [puremixai/pureconnect](https://github.com/puremixai/pureconnect) 的 `discourse-plugin/connect-identity` 子目录。将该子目录作为 Discourse 的 `plugins/connect-identity` 安装，确保 `plugins/connect-identity/plugin.rb` 存在。仓库根目录不是可直接安装的 Discourse 插件目录。
 
 容器部署时，应将获取仓库并复制此子目录的步骤纳入自己的 Discourse 构建配置，使插件在重建后仍然存在。安装或更新插件代码后重建 Discourse。
 
@@ -30,7 +30,7 @@
 - `GET /connect/identity/users/:id` 保持现有最小身份状态响应，包含 Discourse ID、用户名、昵称、邮箱、头像、信任等级和账号状态，以及仅供 Portal 后台访问控制使用的 `connect_reviewer` / `connect_admin` 布尔值。
 - `GET /connect/identity/users/:id/level-progress` 仅供 Portal 服务端调用，返回当前等级、下一等级、升级模式、目标等级条件、阻断条件和生成时间。TL0→TL3 的条件在 Discourse 内部按现有 `Promotion` / `TrustLevel3Requirements` 规则计算；TL3→TL4 返回手动授予；TL4 返回无下一等级。
 
-等级进度接口不会返回任意群组、外部账号、帖子/话题原始记录、IP、API Key 或其他敏感论坛数据。邮箱只会在 Connect 已批准 `email` Scope 后通过 OIDC 返回给第三方应用；等级进度接口本身不返回邮箱或其他身份资料。
+等级进度接口不会返回任意群组、外部账号、帖子/话题原始记录、IP、API Key 或其他敏感论坛数据。邮箱只会在 PureConnect 已批准 `email` Scope 后通过 OIDC 返回给第三方应用；等级进度接口本身不返回邮箱或其他身份资料。
 
 在 Discourse 容器中运行插件测试：
 

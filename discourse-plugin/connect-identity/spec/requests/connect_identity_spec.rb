@@ -3,7 +3,7 @@
 require "rails_helper"
 require "openssl"
 
-RSpec.describe "Connect identity bridge", type: :request do
+RSpec.describe "PureConnect identity bridge", type: :request do
   let(:secret) { "shared-secret" }
   let(:timestamp) { Time.now.to_i }
   let(:nonce) { "spec-nonce-1" }

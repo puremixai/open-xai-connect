@@ -24,12 +24,12 @@ func TestDocsHandlerServesInternalDocumentation(t *testing.T) {
 		t.Fatalf("GET /docs content-type = %q, want HTML", got)
 	}
 	body := response.Body.String()
-	for _, marker := range []string{"XAI Connect 文档", `id="接入前提"`, `id="登录流程authorization-code--pkce"`, `id="安全说明"`} {
+	for _, marker := range []string{"PureConnect 文档", `id="接入前提"`, `id="登录流程authorization-code--pkce"`, `id="安全说明"`} {
 		if !strings.Contains(body, marker) {
 			t.Fatalf("docs page missing %q: %s", marker, body)
 		}
 	}
-	if strings.Contains(body, "github.com/puremixai/xai-connect") {
+	if strings.Contains(body, "github.com/puremixai/pureconnect") {
 		t.Fatalf("docs page points back to GitHub: %s", body)
 	}
 }

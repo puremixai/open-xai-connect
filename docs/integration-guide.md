@@ -1,10 +1,10 @@
-# Open XAI Connect 第三方项目接入指南
+# PureConnect 第三方项目接入指南
 
-本文面向需要使用 XAI Connect 登录的第三方项目开发者，说明如何将一个有服务端的 Web 应用接入 XAI Connect。
+本文面向需要使用 PureConnect 登录的第三方项目开发者，说明如何将一个有服务端的 Web 应用接入 PureConnect。
 
-本文沿用 XAI Connect 实例 `https://connect.xai.run` 演示协议。接入自托管实例时，将所有示例 Issuer 和端点替换为自己的 Connect HTTPS 域名，并在该实例创建应用、获取凭证。部署平台请先阅读[项目 README](../README.md)。
+本文沿用 PureConnect 实例 `https://connect.xai.run` 演示协议。接入自托管实例时，将所有示例 Issuer 和端点替换为自己的 PureConnect HTTPS 域名，并在该实例创建应用、获取凭证。部署平台请先阅读[项目 README](../README.md)。
 
-XAI Connect 对外提供 OpenID Connect（OIDC）登录接口。用户账号、密码、二步验证和账号状态仍由 Discourse 管理；接入方只接收标准 OIDC Token 和用户 Claim，不需要接触 Discourse Cookie、API Key 或密码。
+PureConnect 对外提供 OpenID Connect（OIDC）登录接口。用户账号、密码、二步验证和账号状态仍由 Discourse 管理；接入方只接收标准 OIDC Token 和用户 Claim，不需要接触 Discourse Cookie、API Key 或密码。
 
 本文使用以下生产 Issuer：
 
@@ -35,7 +35,7 @@ OIDC Authorization Code + PKCE（S256）+ client_secret_basic
 
 ### 1.2 不能直接接入
 
-以下项目不能直接把 XAI Connect 当作公共客户端使用：
+以下项目不能直接把 PureConnect 当作公共客户端使用：
 
 - 纯 SPA；
 - 无后端的静态站点；
@@ -43,17 +43,17 @@ OIDC Authorization Code + PKCE（S256）+ client_secret_basic
 - 只能使用 `localhost`、IP 地址或 HTTP 回调的本地应用；
 - 需要 `client_credentials` 的机器间调用。
 
-当前 XAI Connect 注册的是机密客户端，Client Secret 不能放入浏览器、前端构建产物、移动端安装包或桌面客户端。SPA 和移动端应增加自己的后端/BFF，由后端完成授权码换 Token，并向前端签发项目自己的 Session。
+当前 PureConnect 注册的是机密客户端，Client Secret 不能放入浏览器、前端构建产物、移动端安装包或桌面客户端。SPA 和移动端应增加自己的后端/BFF，由后端完成授权码换 Token，并向前端签发项目自己的 Session。
 
 ## 2. 接入流程概览
 
-一次登录涉及用户浏览器、接入项目服务端、XAI Connect 和 Discourse：
+一次登录涉及用户浏览器、接入项目服务端、PureConnect 和 Discourse：
 
 ```mermaid
 sequenceDiagram
     participant B as 用户浏览器
     participant A as 接入项目服务端
-    participant C as XAI Connect
+    participant C as PureConnect
     participant D as Discourse
 
     B->>A: 打开项目登录入口
@@ -79,7 +79,7 @@ sequenceDiagram
 | `GET /auth/xai/callback` | 校验回调、换 Token、建立本地 Session |
 | `POST /logout` | 删除本地 Session，并按需撤销 Token |
 
-这些是接入项目自己的路由，不是 XAI Connect 的服务端接口。
+这些是接入项目自己的路由，不是 PureConnect 的服务端接口。示例沿用 `/auth/xai/` 路径；品牌更名无需修改已注册的回调地址，新项目可自行命名路由并登记完全一致的回调地址。
 
 ## 3. 创建应用并获取凭证
 
@@ -135,7 +135,7 @@ https://app.example.com/callback#fragment      # Fragment
 
 当前平台默认免人工审核。保存应用后，状态会进入 `provisioning`，平台异步创建 OIDC Client；成功后状态变为 `approved` 并显示 Client ID。只有 `approved` 应用才能完成登录。
 
-如果页面长期停留在 `provisioning`，不要在接入项目中反复重试登录，应联系 XAI Connect 运维人员检查 Provisioner。
+如果页面长期停留在 `provisioning`，不要在接入项目中反复重试登录，应联系 PureConnect 运维人员检查 Provisioner。
 
 ### 3.4 保存 Client Secret
 
@@ -152,14 +152,14 @@ Client Secret 必须：
 
 ## 4. 配置接入项目
 
-下面的变量名只是建议命名，不是 XAI Connect 强制要求：
+下面的 `PURECONNECT_*` 变量名仅是接入项目的建议命名，不是 PureConnect 强制要求；已有接入可继续使用原变量名。本仓库的服务端配置及第 11 节 Go 联调示例仍使用 `CONNECT_*` 变量。
 
 ```dotenv
-XAI_CONNECT_ISSUER=https://connect.xai.run
-XAI_CONNECT_CLIENT_ID=从应用详情页获取
-XAI_CONNECT_CLIENT_SECRET=从应用详情页获取
-XAI_CONNECT_REDIRECT_URI=https://app.example.com/auth/xai/callback
-XAI_CONNECT_SCOPES=openid profile
+PURECONNECT_ISSUER=https://connect.xai.run
+PURECONNECT_CLIENT_ID=从应用详情页获取
+PURECONNECT_CLIENT_SECRET=从应用详情页获取
+PURECONNECT_REDIRECT_URI=https://app.example.com/auth/xai/callback
+PURECONNECT_SCOPES=openid profile
 ```
 
 不要给 Issuer 添加路径。Issuer 的精确值是：
@@ -216,7 +216,7 @@ OIDC 库的关键配置应等价于：
 遇到该问题时：
 
 - 不要关闭 ID Token 签名、Issuer、Audience 或 Nonce 校验；
-- 优先向 XAI Connect 维护者反馈并补齐 Provider Metadata；
+- 优先向 PureConnect 维护者反馈并补齐 Provider Metadata；
 - 如果所用库允许临时显式配置算法，只允许 `RS256`，仍须使用 Discovery 的 `jwks_uri` 验证签名，并在平台元数据补齐后移除临时配置；
 - 不要把 Discovery 中 `userinfo_signing_alg_values_supported: ["none"]` 误解为允许无签名 ID Token；它只表示 UserInfo 当前返回普通 JSON。
 
@@ -370,7 +370,7 @@ Token 请求使用 HTTP Basic 发送 Client ID 和 Client Secret，Body 使用 `
 
 ```bash
 curl --request POST "https://connect.xai.run/oauth2/token" \
-  --user "${XAI_CONNECT_CLIENT_ID}:${XAI_CONNECT_CLIENT_SECRET}" \
+  --user "${PURECONNECT_CLIENT_ID}:${PURECONNECT_CLIENT_SECRET}" \
   --header "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "grant_type=authorization_code" \
   --data-urlencode "code=${AUTHORIZATION_CODE}" \
@@ -451,7 +451,7 @@ OIDC 校验成功后，接入项目应创建自己的本地 Session。推荐保�
 ```text
 local_session = {
   local_user_id,
-  identity_provider: "xai-connect",
+  identity_provider: "pureconnect",
   issuer: "https://connect.xai.run",
   subject: "usr_xxx",
   authenticated_at,
@@ -459,9 +459,11 @@ local_session = {
 }
 ```
 
+`identity_provider` 是接入项目内部的示例标识，新项目可使用 `pureconnect`；已有接入应保留原标识，避免影响既有账号映射。第 8 节伪代码中的 `provider` 遵循相同规则。
+
 本地 Session Cookie 至少应启用 `HttpOnly`、`Secure` 和适合业务的 `SameSite`，并在登录完成后轮换 Session ID。Session 有效期由接入项目控制，不能直接等同于 Access Token 有效期。
 
-如果业务不需要在登录后继续调用 XAI Connect，可以在获取并同步必要资料后避免长期保存 Access Token。确需保存 Token 时，应只在服务端加密存储，并严格限制读取权限。
+如果业务不需要在登录后继续调用 PureConnect，可以在获取并同步必要资料后避免长期保存 Access Token。确需保存 Token 时，应只在服务端加密存储，并严格限制读取权限。
 
 ## 7. 刷新 Token 和退出
 
@@ -473,7 +475,7 @@ local_session = {
 
 ```bash
 curl --request POST "https://connect.xai.run/oauth2/token" \
-  --user "${XAI_CONNECT_CLIENT_ID}:${XAI_CONNECT_CLIENT_SECRET}" \
+  --user "${PURECONNECT_CLIENT_ID}:${PURECONNECT_CLIENT_SECRET}" \
   --header "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "grant_type=refresh_token" \
   --data-urlencode "refresh_token=${REFRESH_TOKEN}"
@@ -496,19 +498,19 @@ curl --request POST "https://connect.xai.run/oauth2/token" \
 
 ```bash
 curl --request POST "https://connect.xai.run/oauth2/revoke" \
-  --user "${XAI_CONNECT_CLIENT_ID}:${XAI_CONNECT_CLIENT_SECRET}" \
+  --user "${PURECONNECT_CLIENT_ID}:${PURECONNECT_CLIENT_SECRET}" \
   --header "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "token=${ACCESS_OR_REFRESH_TOKEN}"
 ```
 
-XAI Connect 的 Discovery 当前没有声明 OIDC RP-Initiated Logout 端点。不要把 Portal 内部的 `/connect/logout` 当作第三方项目登出接口；接入方的核心动作始终是销毁自己的本地 Session。
+PureConnect 的 Discovery 当前没有声明 OIDC RP-Initiated Logout 端点。不要把 Portal 内部的 `/connect/logout` 当作第三方项目登出接口；接入方的核心动作始终是销毁自己的本地 Session。
 
 ## 8. 推荐的回调伪代码
 
 下面的伪代码用于说明顺序，生产代码应调用所用语言的成熟 OIDC 库：
 
 ```text
-function xaiCallback(request):
+function pureConnectCallback(request):
     returnedState = request.query.state
     transaction = consumeOneTimeTransaction(returnedState)
 
@@ -543,7 +545,7 @@ function xaiCallback(request):
         reject("subject mismatch")
 
     user = findOrCreateUser(
-        provider = "xai-connect",
+        provider = "pureconnect",
         issuer = idClaims.iss,
         subject = idClaims.sub
     )
@@ -566,7 +568,7 @@ function xaiCallback(request):
 | 回调地址不匹配 | Scheme、主机、端口、路径或尾斜杠与登记值不同 | 比较完整字符串，并检查反向代理对外地址 |
 | ID Token 校验失败 | Issuer、Audience、Nonce、签名或时间校验失败 | 不建立 Session；检查配置和服务器时钟 |
 | UserInfo 返回 `401` | Token 无效/过期、应用被撤销、用户停用或暂停 | 停止使用 Token，结束会话或要求重新登录 |
-| XAI Connect 返回 `5xx` | 平台或依赖暂时不可用 | 显示通用错误，使用有限退避重试或稍后重登 |
+| PureConnect 返回 `5xx` | 平台或依赖暂时不可用 | 显示通用错误，使用有限退避重试或稍后重登 |
 | 本地开发无法登记回调 | 使用了 HTTP、localhost 或 IP | 使用已验证域名下的 HTTPS 测试环境 |
 
 日志和错误页面不得记录：
@@ -594,11 +596,11 @@ function xaiCallback(request):
 - 登录后的业务跳转只允许站内白名单相对路径；
 - 用 `(issuer, sub)` 绑定账号，不用邮箱或用户名绑定；
 - 所有可选 Claim 都按可能缺失处理；
-- 本地 Session 与 XAI Connect Token 分离；
+- 本地 Session 与 PureConnect Token 分离；
 - Cookie 使用 `HttpOnly`、`Secure` 和适当的 `SameSite`；
 - 对 Token、授权码和隐私字段实施日志脱敏；
 - 服务器时间保持同步；
-- 为 Secret 轮换、应用撤销和 XAI Connect 暂时不可用准备运行手册。
+- 为 Secret 轮换、应用撤销和 PureConnect 暂时不可用准备运行手册。
 
 ## 11. 最小 Go 联调示例
 
@@ -657,17 +659,17 @@ go run ./examples/go-client revoke <token>
 - [ ] UserInfo 返回 `401` 时会结束 Token 使用并要求重新认证；
 - [ ] 本地退出始终成功，撤销接口失败不会留下本地会话；
 - [ ] 应用撤销或 Secret 轮换后，旧凭证不会继续被使用；
-- [ ] XAI Connect 超时或返回 `5xx` 时，用户看到可恢复的通用错误。
+- [ ] PureConnect 超时或返回 `5xx` 时，用户看到可恢复的通用错误。
 
 ## 13. 常见误区
 
 ### 能否使用邮箱自动合并已有账号？
 
-不建议直接合并。邮箱可能缺失、变化或与其他身份源冲突。应先用 `(issuer, sub)` 识别 XAI Connect 身份；如需关联已有账号，应增加一次由已登录用户确认的安全绑定流程。
+不建议直接合并。邮箱可能缺失、变化或与其他身份源冲突。应先用 `(issuer, sub)` 识别 PureConnect 身份；如需关联已有账号，应增加一次由已登录用户确认的安全绑定流程。
 
 ### 能否把 Access Token 直接放进浏览器 Cookie？
 
-不能。Access Token 是调用 XAI Connect UserInfo 的凭证，不是接入项目的 Session。接入项目应签发自己的 HttpOnly Session Cookie。
+不能。Access Token 是调用 PureConnect UserInfo 的凭证，不是接入项目的 Session。接入项目应签发自己的 HttpOnly Session Cookie。
 
 ### 能否在回调地址中增加 `next` 查询参数？
 
@@ -675,11 +677,11 @@ go run ./examples/go-client revoke <token>
 
 ### 是否需要每个业务请求都调用 UserInfo？
 
-通常不需要。登录时同步必要资料并建立本地 Session 即可。只有对账号实时状态有明确要求的敏感业务，才应设计定期刷新或关键操作前检查策略，同时处理 XAI Connect 不可用的情况。
+通常不需要。登录时同步必要资料并建立本地 Session 即可。只有对账号实时状态有明确要求的敏感业务，才应设计定期刷新或关键操作前检查策略，同时处理 PureConnect 不可用的情况。
 
 ### 是否需要 Discourse API Key？
 
-不需要。接入方只使用 XAI Connect 发放的 OIDC Client 凭证和 Token。
+不需要。接入方只使用 PureConnect 发放的 OIDC Client 凭证和 Token。
 
 ## 14. 相关文档
 
@@ -687,4 +689,4 @@ go run ./examples/go-client revoke <token>
 - Go 联调示例：[`examples/go-client/main.go`](../examples/go-client/main.go)
 - 平台部署、运维与 Discourse 管理员说明：[`operator-runbook.md`](operator-runbook.md)
 
-如果本文与运行中的 Discovery 在端点或协议元数据上出现差异，接入代码应以 Discovery 为准，并向 XAI Connect 维护者反馈文档问题。安全边界（服务端保存 Secret、Authorization Code + PKCE、严格 Token 校验）不能因端点变化而放宽。
+如果本文与运行中的 Discovery 在端点或协议元数据上出现差异，接入代码应以 Discovery 为准，并向 PureConnect 维护者反馈文档问题。安全边界（服务端保存 Secret、Authorization Code + PKCE、严格 Token 校验）不能因端点变化而放宽。

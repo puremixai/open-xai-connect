@@ -23,7 +23,7 @@ func NewOryClient(baseURL string, httpClient *http.Client) (*OryClient, error) {
 	cfg := ory.NewConfiguration()
 	cfg.Servers[0].URL = strings.TrimRight(baseURL, "/")
 	cfg.HTTPClient = httpClient
-	cfg.UserAgent = "xai-connect/1.0"
+	cfg.UserAgent = "pureconnect/1.0"
 	return &OryClient{API: ory.NewAPIClient(cfg)}, nil
 }
 

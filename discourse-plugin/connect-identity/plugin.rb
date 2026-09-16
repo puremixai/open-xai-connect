@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # name: connect-identity
-# about: Signed identity bridge between Discourse and XAI Connect
+# about: Signed identity bridge between Discourse and PureConnect
 # version: 0.2.0
 # authors: XAI.RUN
-# url: https://connect.xai.run
+# url: https://github.com/puremixai/pureconnect
 
 enabled_site_setting :connect_identity_enabled
 

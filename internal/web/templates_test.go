@@ -619,7 +619,7 @@ func TestPortalTemplatesUseInternalDocsLinks(t *testing.T) {
 			t.Fatalf("read %s: %v", filename, err)
 		}
 		content := string(body)
-		if strings.Contains(content, "github.com/puremixai/xai-connect") {
+		if strings.Contains(content, "github.com/puremixai/pureconnect") {
 			t.Fatalf("%s still points documentation to GitHub", filename)
 		}
 		if !strings.Contains(content, `href="/docs`) {

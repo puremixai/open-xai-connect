@@ -25,7 +25,7 @@ func (l Layout) UserLabel() string {
 			return value
 		}
 	}
-	return "Connect 用户"
+	return "PureConnect 用户"
 }
 
 func (l Layout) UserInitial() string {

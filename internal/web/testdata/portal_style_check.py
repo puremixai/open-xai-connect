@@ -21,7 +21,7 @@ html = f"""<!doctype html>
   <header class="portal-topbar">
     <div class="topbar-inner">
       <a class="portal-brand" href="#brand">
-        <span class="brand-mark">X</span><span class="brand-name">XAI Connect</span>
+        <span class="brand-mark">P</span><span class="brand-name">PureConnect</span>
       </a>
       <div class="topbar-actions">
         <a class="topbar-link" href="#docs">Documentation</a>

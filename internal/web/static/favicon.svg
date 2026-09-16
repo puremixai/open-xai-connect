@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title id="title">XAI Connect</title>
+  <title id="title">PureConnect</title>
   <rect width="64" height="64" rx="16" fill="#111827"/>
-  <path d="M14 14 30 32 14 50M50 14 34 32l16 18" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 50V14h15a10 10 0 0 1 0 20H20" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
