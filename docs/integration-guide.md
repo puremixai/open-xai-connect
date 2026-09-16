@@ -1,6 +1,8 @@
-# XAI Connect 第三方项目接入指南
+# Open XAI Connect 第三方项目接入指南
 
 本文面向需要使用 XAI Connect 登录的第三方项目开发者，说明如何将一个有服务端的 Web 应用接入 XAI Connect。
+
+本文沿用 XAI Connect 实例 `https://connect.xai.run` 演示协议。接入自托管实例时，将所有示例 Issuer 和端点替换为自己的 Connect HTTPS 域名，并在该实例创建应用、获取凭证。部署平台请先阅读[项目 README](../README.md)。
 
 XAI Connect 对外提供 OpenID Connect（OIDC）登录接口。用户账号、密码、二步验证和账号状态仍由 Discourse 管理；接入方只接收标准 OIDC Token 和用户 Claim，不需要接触 Discourse Cookie、API Key 或密码。
 
@@ -681,8 +683,8 @@ go run ./examples/go-client revoke <token>
 
 ## 14. 相关文档
 
-- 项目总览与平台管理员说明：[`README.md`](../README.md)
+- 项目总览与自托管入门：[`README.md`](../README.md)
 - Go 联调示例：[`examples/go-client/main.go`](../examples/go-client/main.go)
-- 平台部署与运维：[`operator-runbook.md`](operator-runbook.md)
+- 平台部署、运维与 Discourse 管理员说明：[`operator-runbook.md`](operator-runbook.md)
 
 如果本文与运行中的 Discovery 在端点或协议元数据上出现差异，接入代码应以 Discovery 为准，并向 XAI Connect 维护者反馈文档问题。安全边界（服务端保存 Secret、Authorization Code + PKCE、严格 Token 校验）不能因端点变化而放宽。
